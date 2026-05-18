@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://autoaufbereitung-cloppenburg.de/sitemap-index.xml

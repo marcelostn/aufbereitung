@@ -1,0 +1,31 @@
+{
+  "name": "AutoAufbereitung Cloppenburg",
+  "inhaber": "Inhaber",
+  "strasse": "",
+  "plz": "49661",
+  "ort": "Cloppenburg",
+  "telefon": "+49 (0) XXX XXXXXXX",
+  "email": "info@autoaufbereitung-cloppenburg.de",
+  "ustIdNr": "DE XXXXXXXXX",
+  "einzugsgebiet": "Cloppenburg und Umgebung (bis ca. 50 km)",
+  "calLink": "",
+  "calLinks": {
+    "aussen":            "autoaufbereitung/außenreinigung",
+    "innen_basic":       "autoaufbereitung/innen-basic",
+    "innen_premium":     "autoaufbereitung/innen-premium",
+    "innen_detail":      "autoaufbereitung/innen-full-detail",
+    "komplett_basic":    "autoaufbereitung/komplett-basic",
+    "komplett_premium":  "autoaufbereitung/komplett-premium",
+    "komplett_detail":   "autoaufbereitung/komplett-full-detail",
+    "lkw_basic":         "",
+    "lkw_premium":       "",
+    "traktor_basic":     "",
+    "traktor_premium":   "",
+    "transporter_basic": "",
+    "transporter_premium": ""
+  },
+  "web3formsKey": "",
+  "steuernummer": "",
+  "iban": "",
+  "bank": ""
+}

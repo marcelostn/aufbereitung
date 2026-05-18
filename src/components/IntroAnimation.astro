@@ -1,0 +1,133 @@
+---
+// Cinematische Start-Intro: lokales Fullscreen-Video, blendet in die Seite.
+// 1x pro Browser-Session, überspringbar, reduced-motion-sicher.
+// Kein externes CDN. Fehlt/lädt das Video nicht -> Intro überspringt sauber.
+---
+
+<link rel="preload" href="/animations/detailing-intro.webm" as="video" type="video/webm" />
+
+<div id="intro" class="intro-overlay" aria-hidden="true">
+  <button id="intro-skip" class="intro-skip" type="button">Überspringen</button>
+
+  <video
+    id="intro-video"
+    class="intro-media"
+    muted
+    playsinline
+    autoplay
+    preload="auto"
+    poster="/images/after-1.jpg"
+  >
+    <source src="/animations/detailing-intro.webm" type="video/webm" />
+    <source src="/animations/detailing-intro.mp4" type="video/mp4" />
+  </video>
+
+  <div class="intro-vignette"></div>
+</div>
+
+<style>
+  .intro-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    background: radial-gradient(ellipse 80% 80% at 50% 45%, #1b1e22 0%, #0f1113 70%);
+    overflow: hidden;
+    opacity: 1;
+  }
+  .intro-overlay.intro-fade {
+    transition: opacity 0.6s ease-in;
+    opacity: 0;
+  }
+  .intro-overlay.intro-done {
+    display: none;
+  }
+
+  .intro-skip {
+    position: absolute;
+    top: 1.25rem;
+    right: 1.25rem;
+    z-index: 3;
+    font: 600 0.8rem/1 'Inter', system-ui, sans-serif;
+    color: #9aa0a8;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 999px;
+    padding: 0.5rem 1rem;
+    cursor: pointer;
+    transition: color 0.2s, border-color 0.2s;
+  }
+  .intro-skip:hover {
+    color: #f2f3f5;
+    border-color: rgba(255, 255, 255, 0.25);
+  }
+
+  .intro-media {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    background: #0f1113;
+  }
+
+  .intro-vignette {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: radial-gradient(ellipse 72% 72% at 50% 52%, transparent 45%, rgba(15, 17, 19, 0.62) 100%);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .intro-overlay { display: none; }
+  }
+</style>
+
+<script>
+  // Maximaldauer / Not-Aus (ms): beendet das Intro auch ohne 'ended'-Signal
+  const MAX_MS = 6000;
+
+  const overlay = document.getElementById('intro');
+  const video = document.getElementById('intro-video') as HTMLVideoElement | null;
+
+  if (overlay && video) {
+    const seen = sessionStorage.getItem('introSeen');
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    if (seen || reduced) {
+      overlay.classList.add('intro-done');
+    } else {
+      sessionStorage.setItem('introSeen', '1');
+      document.documentElement.style.overflow = 'hidden';
+
+      let finished = false;
+      const finish = () => {
+        if (finished) return;
+        finished = true;
+        overlay.classList.add('intro-fade');
+        document.documentElement.style.overflow = '';
+        window.setTimeout(() => overlay.classList.add('intro-done'), 650);
+      };
+
+      // Video zu Ende -> weich in die Seite
+      video.addEventListener('ended', finish);
+      // Asset fehlt / Quelle nicht ladbar -> sofort überspringen
+      video.addEventListener('error', finish, true);
+      video.addEventListener('stalled', () => window.setTimeout(finish, 1500));
+      // Überspringen-Button
+      document.getElementById('intro-skip')?.addEventListener('click', finish);
+
+      // Autoplay anstoßen; blockiert der Browser -> Intro nicht erzwingen
+      const tryPlay = video.play();
+      if (tryPlay && typeof tryPlay.then === 'function') {
+        tryPlay.catch(() => finish());
+      }
+
+      // Falls keine Quelle auflösbar ist (beide Formate fehlen)
+      video.addEventListener('loadeddata', () => {
+        if (!video.videoWidth) finish();
+      });
+      // Hartes Sicherheitsnetz
+      window.setTimeout(finish, MAX_MS);
+    }
+  }
+</script>

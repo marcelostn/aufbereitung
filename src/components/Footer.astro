@@ -1,0 +1,47 @@
+---
+import { FIRMA } from '../data/firma';
+---
+
+<footer class="bg-zinc-950 border-t border-zinc-800 text-zinc-400 mt-16">
+  <div class="max-w-6xl mx-auto px-4 sm:px-6 py-10 grid grid-cols-1 sm:grid-cols-3 gap-8">
+    <div>
+      <h3 class="font-bold text-zinc-100 mb-3">Kontakt</h3>
+      <p class="text-sm leading-7">
+        {FIRMA.name}<br />
+        {FIRMA.plz} {FIRMA.ort}<br />
+        <a href={`tel:${FIRMA.telefon.replace(/\s/g, '')}`} class="hover:text-orange-400 transition-colors duration-200">
+          {FIRMA.telefon}
+        </a><br />
+        <a href={`mailto:${FIRMA.email}`} class="hover:text-orange-400 transition-colors duration-200 break-all">
+          {FIRMA.email}
+        </a>
+      </p>
+    </div>
+
+    <div>
+      <h3 class="font-bold text-zinc-100 mb-3">Leistungen</h3>
+      <ul class="text-sm leading-8">
+        <li><a href="/leistungen#aussen" class="hover:text-orange-400 transition-colors duration-200">Außenreinigung</a></li>
+        <li><a href="/leistungen#innen" class="hover:text-orange-400 transition-colors duration-200">Innenreinigung</a></li>
+        <li><a href="/leistungen#komplett" class="hover:text-orange-400 transition-colors duration-200">Komplett-Pakete</a></li>
+        <li><a href="/leistungen#lkw" class="hover:text-orange-400 transition-colors duration-200">LKW / Traktor</a></li>
+        <li><a href="/preisrechner" class="hover:text-orange-400 transition-colors duration-200">Preisrechner</a></li>
+      </ul>
+    </div>
+
+    <div>
+      <h3 class="font-bold text-zinc-100 mb-3">Rechtliches</h3>
+      <ul class="text-sm leading-8">
+        <li><a href="/impressum" class="hover:text-orange-400 transition-colors duration-200">Impressum</a></li>
+        <li><a href="/datenschutz" class="hover:text-orange-400 transition-colors duration-200">Datenschutz</a></li>
+      </ul>
+      <p class="mt-4 text-xs text-zinc-600">
+        Einzugsgebiet: {FIRMA.einzugsgebiet}
+      </p>
+    </div>
+  </div>
+
+  <div class="border-t border-zinc-800 py-4 text-center text-xs text-zinc-600">
+    &copy; {new Date().getFullYear()} {FIRMA.name} &middot; Alle Preise inkl. 19&nbsp;% MwSt.
+  </div>
+</footer>

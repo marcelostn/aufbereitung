@@ -1,0 +1,70 @@
+START-INTRO VIDEO (Auto-Detailing)
+==================================
+
+Die Startseite zeigt beim ersten Besuch pro Browser-Session ein
+kurzes Vollbild-Intro-Video, danach blendet es weich in die Seite.
+
+WAS DU TUN MUSST
+----------------
+Lege hier deine zwei Dateien ab mit GENAU diesen Namen:
+
+    detailing-intro.webm     (Hauptformat, VP9/AV1)
+    detailing-intro.mp4      (Fallback, H.264 - für iPhone/Safari wichtig)
+
+Pfad: webseite/public/animations/
+Aufruf später im Browser: /animations/detailing-intro.webm
+
+Solange die Dateien fehlen, ist das KEIN Fehler:
+Das Intro merkt das automatisch und springt sofort zur Seite.
+Die Website funktioniert normal weiter.
+
+
+EMPFOHLENE SPEZIFIKATION
+------------------------
+- Länge:        3-5 Sekunden (Storyboard: Kamera ans Auto, Zoom in
+                den Innenraum, kurze Detailing-Szene, dann Fade)
+- Auflösung:    1920x1080 (Desktop). Mobil reicht 1280x720.
+- Bildrate:     24-30 fps
+- DATEIGRÖSSE (wichtig für Mobil/Ladezeit):
+    * WebM: möglichst < 2,5 MB  (ideal ~1,5 MB)
+    * MP4:  möglichst < 3,5 MB
+  Größer = langsamer Start auf Handy + schlechtere Ladewertung.
+- Ton:          egal, das Video läuft STUMM (Autoplay-Pflicht).
+                Mach am besten gleich eine tonlose Datei.
+- Look:         dunkel/premium, passt zum Graphit-Chrome-Design.
+- Letztes Bild: möglichst dunkel/ruhig, damit der Übergang in die
+                Seite weich wirkt.
+
+
+POSTER / ERSTES BILD
+--------------------
+Bis das Video abspielbereit ist, wird als Standbild
+/images/after-1.jpg gezeigt (dein vorhandenes Auto-Foto), damit
+der Start nicht schwarz ist. Willst du ein eigenes Standbild:
+sag Bescheid, dann binde ich z. B. /animations/intro-poster.jpg ein.
+
+
+EINSTELLUNGEN ANPASSEN
+----------------------
+Alles in: webseite/src/components/IntroAnimation.astro
+
+- Anzeigehäufigkeit: läuft 1x pro Browser-Session.
+  Steuerung über sessionStorage-Schlüssel "introSeen".
+  Zum erneuten Testen: Inkognito-Fenster ODER
+  DevTools > Application > Session Storage > "introSeen" löschen
+  > Seite neu laden.
+- Maximaldauer / Not-Aus: Konstante MAX_MS im <script>
+  (Sicherheitstimer, beendet das Intro auch falls das Video-Ende-
+  Signal ausbleibt). Aktuell 6000 ms.
+- Fade-out-Dauer: CSS-Klasse .intro-overlay.intro-fade
+  (transition: opacity ...). Aktuell 0.6s.
+- Überspringen-Button: immer sichtbar oben rechts.
+- prefers-reduced-motion: Intro wird komplett übersprungen.
+
+KONVERTIEREN (falls du nur eine Quelldatei hast)
+------------------------------------------------
+Mit ffmpeg (Beispiel, 5 s ab Sekunde 0, tonlos):
+  WebM: ffmpeg -i quelle.mp4 -t 5 -an -c:v libvpx-vp9 -b:v 1500k
+        -vf "scale=1920:-2" detailing-intro.webm
+  MP4 : ffmpeg -i quelle.mp4 -t 5 -an -c:v libx264 -crf 24
+        -pix_fmt yuv420p -vf "scale=1920:-2" detailing-intro.mp4

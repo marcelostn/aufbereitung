@@ -1,0 +1,197 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { FIRMA } from '../data/firma';
+---
+
+<BaseLayout
+  title="Kontakt & Fragen"
+  description={`Fragen zur Autoaufbereitung in ${FIRMA.ort}? Schreib uns kurz – oder berechne direkt deinen Preis und buche einen Termin.`}
+>
+  <div class="max-w-3xl mx-auto px-4 sm:px-6 py-12 sm:py-16">
+
+    <!-- Header -->
+    <h1 class="text-3xl sm:text-4xl font-extrabold mb-3 tracking-tight text-zinc-100">Hast du eine Frage?</h1>
+    <p class="text-zinc-400 mb-8 text-lg leading-relaxed">
+      Für Preise und Terminbuchung nutze einfach den Preisrechner — der führt dich in wenigen Schritten durch alles.<br class="hidden sm:block" />
+      Für alles andere schreib uns kurz.
+    </p>
+
+    <!-- Primary CTA -->
+    <a
+      href="/preisrechner"
+      class="btn-gold inline-flex items-center gap-2 px-7 py-4 rounded-xl font-bold text-base mb-10"
+    >
+      <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 10.5V6a3.75 3.75 0 1 0-7.5 0v4.5m11.356-1.993 1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 0 1-1.12-1.243l1.264-12A1.125 1.125 0 0 1 5.513 7.5h12.974c.576 0 1.059.435 1.119 1.007Z" />
+      </svg>
+      Preis berechnen &amp; Termin buchen
+    </a>
+
+    <!-- Divider -->
+    <div class="flex items-center gap-4 mb-10">
+      <div class="flex-1 h-px bg-zinc-800"></div>
+      <span class="text-sm text-zinc-600 shrink-0">oder direkt melden</span>
+      <div class="flex-1 h-px bg-zinc-800"></div>
+    </div>
+
+    <!-- Two-column: contact info + form -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+
+      <!-- Kontakt-Info -->
+      <div class="space-y-4">
+        <h2 class="font-bold text-zinc-100 mb-4">Direkt erreichen</h2>
+
+        <a
+          href={`tel:${FIRMA.telefon.replace(/\s/g, '')}`}
+          class="flex items-center gap-3 p-3 rounded-xl bg-zinc-900 border border-zinc-800 hover:border-amber-500/40 transition-colors duration-200 cursor-pointer group"
+        >
+          <div class="w-10 h-10 bg-zinc-800 border border-zinc-700 rounded-lg flex items-center justify-center text-zinc-400 group-hover:text-amber-400 transition-colors shrink-0">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 0 0 2.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 0 1-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 0 0-1.091-.852H4.5A2.25 2.25 0 0 0 2.25 4.5v2.25Z" />
+            </svg>
+          </div>
+          <span class="font-semibold text-zinc-100 group-hover:text-amber-400 transition-colors duration-200">{FIRMA.telefon}</span>
+        </a>
+
+        <a
+          href={`mailto:${FIRMA.email}`}
+          class="flex items-center gap-3 p-3 rounded-xl bg-zinc-900 border border-zinc-800 hover:border-amber-500/40 transition-colors duration-200 cursor-pointer group"
+        >
+          <div class="w-10 h-10 bg-zinc-800 border border-zinc-700 rounded-lg flex items-center justify-center text-zinc-400 group-hover:text-amber-400 transition-colors shrink-0">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25h-15a2.25 2.25 0 0 1-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25m19.5 0v.243a2.25 2.25 0 0 1-1.07 1.916l-7.5 4.615a2.25 2.25 0 0 1-2.36 0L3.32 8.91a2.25 2.25 0 0 1-1.07-1.916V6.75" />
+            </svg>
+          </div>
+          <span class="font-semibold text-zinc-100 group-hover:text-amber-400 transition-colors duration-200 break-all">{FIRMA.email}</span>
+        </a>
+
+        <div class="flex items-center gap-3 p-3 rounded-xl bg-zinc-900 border border-zinc-800">
+          <div class="w-10 h-10 bg-zinc-800 border border-zinc-700 rounded-lg flex items-center justify-center text-zinc-400 shrink-0">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+              <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z" />
+            </svg>
+          </div>
+          <div>
+            <span class="font-semibold text-zinc-100">{FIRMA.ort} und Umgebung</span>
+            <p class="text-xs text-zinc-600 mt-0.5">10 km Radius kostenlos · danach 0,30 €/km</p>
+          </div>
+        </div>
+
+        <!-- Google Maps -->
+        <div class="rounded-xl overflow-hidden border border-zinc-800 mt-2">
+          <iframe
+            title="Standort Cloppenburg"
+            width="100%"
+            height="200"
+            style="border:0; display:block;"
+            loading="lazy"
+            referrerpolicy="no-referrer-when-downgrade"
+            src="https://maps.google.de/maps?q=Cloppenburg,+Niedersachsen&hl=de&z=12&output=embed"
+          ></iframe>
+        </div>
+      </div>
+
+      <!-- Einfaches Frageformular -->
+      <div>
+        <h2 class="font-bold text-zinc-100 mb-4">Frage stellen</h2>
+        <form id="kontaktFormular" class="space-y-4">
+          <div>
+            <label class="block text-sm font-semibold mb-1.5 text-zinc-300" for="name">Name *</label>
+            <input
+              type="text"
+              id="name"
+              name="name"
+              required
+              class="w-full bg-zinc-900 border border-zinc-700 text-zinc-100 placeholder-zinc-600 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-amber-500/60 focus:border-transparent text-sm transition-colors"
+              placeholder="Max Mustermann"
+            />
+          </div>
+
+          <div>
+            <label class="block text-sm font-semibold mb-1.5 text-zinc-300" for="email">E-Mail oder Telefon *</label>
+            <input
+              type="text"
+              id="email"
+              name="email"
+              required
+              class="w-full bg-zinc-900 border border-zinc-700 text-zinc-100 placeholder-zinc-600 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-amber-500/60 focus:border-transparent text-sm transition-colors"
+              placeholder="max@beispiel.de oder 0160 …"
+            />
+          </div>
+
+          <div>
+            <label class="block text-sm font-semibold mb-1.5 text-zinc-300" for="nachricht">Deine Frage *</label>
+            <textarea
+              id="nachricht"
+              name="nachricht"
+              rows="5"
+              required
+              class="w-full bg-zinc-900 border border-zinc-700 text-zinc-100 placeholder-zinc-600 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-amber-500/60 focus:border-transparent text-sm transition-colors resize-none"
+              placeholder="z. B. Macht ihr auch Wohnmobile? Gibt es noch einen Termin diese Woche? …"
+            ></textarea>
+          </div>
+
+          <div id="formStatus" class="hidden rounded-xl p-4 text-sm font-medium"></div>
+
+          <button
+            type="submit"
+            id="submitBtn"
+            class="btn-gold w-full px-6 py-3.5 rounded-xl font-bold cursor-pointer min-h-[52px]"
+          >
+            Frage absenden
+          </button>
+          <p class="text-xs text-zinc-600 text-center">Wir antworten in der Regel innerhalb weniger Stunden.</p>
+        </form>
+      </div>
+    </div>
+  </div>
+</BaseLayout>
+
+<script define:vars={{ empfaenger: FIRMA.email, web3formsKey: FIRMA.web3formsKey }}>
+  const form = document.getElementById('kontaktFormular');
+  const statusDiv = document.getElementById('formStatus');
+  const submitBtn = document.getElementById('submitBtn');
+
+  form?.addEventListener('submit', async function (e) {
+    e.preventDefault();
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Wird gesendet …';
+
+    const data = {
+      name: form.name.value,
+      email: form.email.value,
+      nachricht: form.nachricht.value,
+      subject: `Frage Autoaufbereitung – ${form.name.value}`,
+    };
+
+    if (web3formsKey) {
+      try {
+        const res = await fetch('https://api.web3forms.com/submit', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+          body: JSON.stringify({ access_key: web3formsKey, ...data }),
+        });
+        const json = await res.json();
+        if (json.success) {
+          statusDiv.className = 'rounded-xl p-4 text-sm font-medium bg-green-500/15 border border-green-500/30 text-green-400';
+          statusDiv.textContent = 'Nachricht gesendet! Wir melden uns bald.';
+          form.reset();
+        } else {
+          throw new Error('Fehler');
+        }
+      } catch {
+        statusDiv.className = 'rounded-xl p-4 text-sm font-medium bg-red-500/15 border border-red-500/30 text-red-400';
+        statusDiv.textContent = 'Fehler beim Senden. Ruf uns gerne direkt an.';
+      }
+    } else {
+      const betreff = encodeURIComponent(data.subject);
+      const body = encodeURIComponent(`Name: ${data.name}\nKontakt: ${data.email}\n\nFrage:\n${data.nachricht}`);
+      window.location.href = `mailto:${empfaenger}?subject=${betreff}&body=${body}`;
+    }
+
+    submitBtn.disabled = false;
+    submitBtn.textContent = 'Frage absenden';
+    statusDiv.classList.remove('hidden');
+  });
+</script>

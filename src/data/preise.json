@@ -1,0 +1,44 @@
+{
+  "aussen": {
+    "name": "Außenreinigung",
+    "bruttoPreis": 69.99,
+    "dauer": "1,5 h",
+    "beschreibung": "Handwäsche, Felgen, Scheiben außen, Türen und Dichtungen, Trocknung, Reifenpflege"
+  },
+  "innen_basic": {
+    "name": "Innen Basic",
+    "bruttoPreis": 74.99,
+    "dauer": "1,5 h",
+    "beschreibung": "Aussaugen, Armaturenbrett abwischen, Scheiben innen, Fußmatten reinigen"
+  },
+  "innen_premium": {
+    "name": "Innen Premium",
+    "bruttoPreis": 129.99,
+    "dauer": "2,5 h",
+    "beschreibung": "Alles aus Basic + Sitze und Polster reinigen, Türverkleidungen, Kofferraum, Lederpflege (falls vorhanden)"
+  },
+  "innen_detail": {
+    "name": "Innen Full Detail",
+    "bruttoPreis": 224.99,
+    "dauer": "4 h",
+    "beschreibung": "Alles aus Premium + Dampfreinigung, Fugen und Spaltpflege, Teppiche intensiv, Geruchsneutralisierung"
+  },
+  "komplett_basic": {
+    "name": "Komplett Basic (Innen + Außen)",
+    "bruttoPreis": 119.99,
+    "dauer": "3 h",
+    "beschreibung": "Außenreinigung + Innen Basic – 30 % Bündelrabatt"
+  },
+  "komplett_premium": {
+    "name": "Komplett Premium",
+    "bruttoPreis": 169.99,
+    "dauer": "4 h",
+    "beschreibung": "Außenreinigung + Innen Premium – 30 % Bündelrabatt"
+  },
+  "komplett_detail": {
+    "name": "Komplett Full Detail",
+    "bruttoPreis": 249.99,
+    "dauer": "5,5 h",
+    "beschreibung": "Außenreinigung + Innen Full Detail – 30 % Bündelrabatt"
+  }
+}

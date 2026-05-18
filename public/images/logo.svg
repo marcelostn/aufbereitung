@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 210 52" fill="none">
+  <!-- ═══ ICON (52x52) ═══ -->
+  <rect width="52" height="52" rx="11" fill="#f59e0b"/>
+
+  <!-- Boden-Schatten -->
+  <ellipse cx="26" cy="46" rx="21" ry="3" fill="rgba(0,0,0,0.18)"/>
+
+  <!-- Karosserie unten -->
+  <rect x="4" y="26" width="44" height="13" rx="3" fill="white"/>
+
+  <!-- Radkästen (amber-Ausschnitte) -->
+  <circle cx="14" cy="39" r="9" fill="#f59e0b"/>
+  <circle cx="38" cy="39" r="9" fill="#f59e0b"/>
+
+  <!-- Fahrgastzelle -->
+  <path d="M 13 26 Q 14 26 15 24 L 18 13 Q 19 11 21 11 L 31 11 Q 33 11 34 13 L 37 24 Q 38 26 39 26 Z" fill="white"/>
+
+  <!-- Fensterscheibe -->
+  <path d="M 21 13 L 19 24 L 33 24 L 31 13 Z" fill="#d97706" opacity="0.85"/>
+  <rect x="25.3" y="13" width="1.7" height="11" fill="#f59e0b"/>
+
+  <!-- Scheinwerfer & Rücklicht -->
+  <ellipse cx="46" cy="30" rx="3.2" ry="2.5" fill="#fef9c3"/>
+  <ellipse cx="6" cy="30" rx="2.5" ry="2" fill="#fecaca"/>
+
+  <!-- Räder -->
+  <circle cx="14" cy="39" r="7" fill="#451a03"/>
+  <circle cx="14" cy="39" r="2.8" fill="#f59e0b"/>
+  <circle cx="38" cy="39" r="7" fill="#451a03"/>
+  <circle cx="38" cy="39" r="2.8" fill="#f59e0b"/>
+
+  <!-- Glanz-Stern (4-zackig) -->
+  <path d="M 42 4 L 43.1 7.9 L 47 9 L 43.1 10.1 L 42 14 L 40.9 10.1 L 37 9 L 40.9 7.9 Z" fill="white"/>
+  <!-- Kleiner Glanz-Stern -->
+  <path d="M 48 18 L 48.6 19.4 L 51 20 L 48.6 20.6 L 48 22 L 47.4 20.6 L 45 20 L 47.4 19.4 Z" fill="white" opacity="0.75"/>
+
+  <!-- ═══ WORDMARK ═══ -->
+  <!-- Firmenname: "Auto" weiß + "Care" amber — Platzhalter, Name später ersetzen -->
+  <text x="66" y="32"
+        font-family="Inter, 'Arial Narrow', Arial, sans-serif"
+        font-weight="900"
+        font-size="23"
+        letter-spacing="-0.5">
+    <tspan fill="white">Auto</tspan><tspan fill="#fbbf24">Care</tspan>
+  </text>
+
+  <!-- Untertitel / Standort -->
+  <text x="67" y="46"
+        font-family="Inter, Arial, sans-serif"
+        font-weight="500"
+        font-size="9.5"
+        fill="#b45309"
+        letter-spacing="2.5">CLOPPENBURG</text>
+</svg>

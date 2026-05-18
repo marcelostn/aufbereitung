@@ -1,0 +1,256 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { PKW_PAKETE } from '../data/preise';
+import { TIERHAARE, KINDERSITZ_PRO_STUECK, NIKOTIN, FAHRZEUG_ZUSCHLAG } from '../data/aufpreise';
+import { LKW_PAKETE } from '../data/lkw';
+import BeforeAfterSlider from '../components/BeforeAfterSlider';
+
+function eur(n: number) {
+  return n.toLocaleString('de-DE', { style: 'currency', currency: 'EUR' });
+}
+
+const fahrkostenTabelle = [
+  { km: 5, kosten: 0 },
+  { km: 10, kosten: 0 },
+  { km: 15, kosten: 3 },
+  { km: 25, kosten: 9 },
+  { km: 40, kosten: 18 },
+  { km: 50, kosten: 24 },
+];
+---
+
+<BaseLayout
+  title="Leistungen & Preise"
+  description="Alle Preise für PKW-Außenreinigung, Innenreinigung, Komplett-Pakete, LKW-Innenraum und Aufpreise im Überblick."
+>
+  <div class="max-w-5xl mx-auto px-4 sm:px-6 py-12">
+    <h1 class="text-3xl sm:text-4xl font-black mb-2 tracking-tighter text-zinc-100">Leistungen &amp; Preise</h1>
+    <p class="text-zinc-500 mb-8">Alle Preise inkl. 19 % MwSt. · Festpreise, keine versteckten Kosten.</p>
+
+    <!-- Vorher / Nachher Slider -->
+    <div class="mb-12 fade-in-up">
+      <BeforeAfterSlider client:load beforeSrc="/images/before-interior.jpg" afterSrc="/images/after-interior.jpg" beforeLabel="Vorher" afterLabel="Nachher" />
+      <p class="text-zinc-700 text-xs mt-3 text-center">Eigene Auftragsfotos folgen nach ersten Aufträgen</p>
+    </div>
+
+    <!-- Außenreinigung -->
+    <section id="aussen" class="mb-12 scroll-mt-20 fade-in-up">
+      <h2 class="text-2xl font-bold mb-4 border-b border-zinc-800 pb-2 text-zinc-100">Außenreinigung PKW</h2>
+      <div class="bg-zinc-900/70 backdrop-blur-sm rounded-xl border border-zinc-800/70 overflow-hidden">
+        <table class="w-full text-sm">
+          <thead class="bg-zinc-800/80 text-zinc-300">
+            <tr>
+              <th class="text-left px-4 py-3 font-semibold">Leistung</th>
+              <th class="text-left px-4 py-3 font-semibold">Inhalt</th>
+              <th class="text-left px-4 py-3 font-semibold">Dauer</th>
+              <th class="text-right px-4 py-3 font-semibold">Preis (brutto)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr class="border-t border-zinc-800 hover:bg-zinc-800/50 transition-colors">
+              <td class="px-4 py-3 font-semibold text-zinc-100">{PKW_PAKETE.aussen.name}</td>
+              <td class="px-4 py-3 text-zinc-400">{PKW_PAKETE.aussen.beschreibung}</td>
+              <td class="px-4 py-3 text-zinc-400">{PKW_PAKETE.aussen.dauer}</td>
+              <td class="px-4 py-3 text-right font-bold text-amber-400">{eur(PKW_PAKETE.aussen.bruttoPreis)}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Innenreinigung -->
+    <section id="innen" class="mb-12 scroll-mt-20 fade-in-up">
+      <h2 class="text-2xl font-bold mb-4 border-b border-zinc-800 pb-2 text-zinc-100">Innenreinigung PKW</h2>
+      <div class="bg-zinc-900/70 backdrop-blur-sm rounded-xl border border-zinc-800/70 overflow-hidden">
+        <table class="w-full text-sm">
+          <thead class="bg-zinc-800/80 text-zinc-300">
+            <tr>
+              <th class="text-left px-4 py-3 font-semibold">Paket</th>
+              <th class="text-left px-4 py-3 font-semibold">Inhalt</th>
+              <th class="text-left px-4 py-3 font-semibold">Dauer</th>
+              <th class="text-right px-4 py-3 font-semibold">Preis (brutto)</th>
+            </tr>
+          </thead>
+          <tbody>
+            {(['innen_basic', 'innen_premium', 'innen_detail'] as const).map((key, i) => (
+              <tr class={`border-t border-zinc-800 hover:bg-zinc-800/50 transition-colors ${i % 2 === 1 ? 'bg-zinc-900/40' : ''}`}>
+                <td class="px-4 py-3 font-semibold text-zinc-100">{PKW_PAKETE[key].name}</td>
+                <td class="px-4 py-3 text-zinc-400">{PKW_PAKETE[key].beschreibung}</td>
+                <td class="px-4 py-3 text-zinc-400">{PKW_PAKETE[key].dauer}</td>
+                <td class="px-4 py-3 text-right font-bold text-amber-400">{eur(PKW_PAKETE[key].bruttoPreis)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Komplett-Pakete -->
+    <section id="komplett" class="mb-12 scroll-mt-20 fade-in-up">
+      <h2 class="text-2xl font-bold mb-1 border-b border-zinc-800 pb-2 text-zinc-100">Komplett-Pakete (Innen + Außen)</h2>
+      <p class="text-sm text-green-400 font-medium mb-4">30 % Bündelrabatt gegenüber Einzelbuchung</p>
+      <div class="bg-zinc-900/70 backdrop-blur-sm rounded-xl border-2 border-amber-500/35 overflow-hidden">
+        <table class="w-full text-sm">
+          <thead class="bg-amber-500/8 text-zinc-300 border-b border-amber-500/20">
+            <tr>
+              <th class="text-left px-4 py-3 font-semibold">Paket</th>
+              <th class="text-left px-4 py-3 font-semibold">Inhalt</th>
+              <th class="text-left px-4 py-3 font-semibold">Dauer</th>
+              <th class="text-right px-4 py-3 font-semibold">Preis (brutto)</th>
+            </tr>
+          </thead>
+          <tbody>
+            {(['komplett_basic', 'komplett_premium', 'komplett_detail'] as const).map((key, i) => (
+              <tr class={`border-t border-zinc-800 hover:bg-amber-500/5 transition-colors ${i % 2 === 1 ? 'bg-zinc-900/40' : ''}`}>
+                <td class="px-4 py-3 font-semibold text-zinc-100">{PKW_PAKETE[key].name}</td>
+                <td class="px-4 py-3 text-zinc-400">{PKW_PAKETE[key].beschreibung}</td>
+                <td class="px-4 py-3 text-zinc-400">{PKW_PAKETE[key].dauer}</td>
+                <td class="px-4 py-3 text-right font-bold text-amber-400">{eur(PKW_PAKETE[key].bruttoPreis)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Aufpreise -->
+    <section id="aufpreise" class="mb-12 scroll-mt-20 fade-in-up">
+      <h2 class="text-2xl font-bold mb-4 border-b border-zinc-800 pb-2 text-zinc-100">Aufpreise (kombinierbar)</h2>
+      <div class="bg-zinc-900/70 backdrop-blur-sm rounded-xl border border-zinc-800/70 overflow-hidden">
+        <table class="w-full text-sm">
+          <thead class="bg-zinc-800/80 text-zinc-300">
+            <tr>
+              <th class="text-left px-4 py-3 font-semibold">Aufpreis</th>
+              <th class="text-left px-4 py-3 font-semibold">Anmerkung</th>
+              <th class="text-right px-4 py-3 font-semibold">Betrag (brutto)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr class="border-t border-zinc-800 hover:bg-zinc-800/50 transition-colors">
+              <td class="px-4 py-3 font-semibold text-zinc-100">Tierhaare – leicht</td>
+              <td class="px-4 py-3 text-zinc-400">Kurz, wenig</td>
+              <td class="px-4 py-3 text-right font-bold text-amber-400">+{eur(TIERHAARE.leicht)}</td>
+            </tr>
+            <tr class="border-t border-zinc-800 bg-zinc-900/40 hover:bg-zinc-800/50 transition-colors">
+              <td class="px-4 py-3 font-semibold text-zinc-100">Tierhaare – mittel</td>
+              <td class="px-4 py-3 text-zinc-400"></td>
+              <td class="px-4 py-3 text-right font-bold text-amber-400">+{eur(TIERHAARE.mittel)}</td>
+            </tr>
+            <tr class="border-t border-zinc-800 hover:bg-zinc-800/50 transition-colors">
+              <td class="px-4 py-3 font-semibold text-zinc-100">Tierhaare – stark</td>
+              <td class="px-4 py-3 text-zinc-400">Langhaar, tief eingearbeitet</td>
+              <td class="px-4 py-3 text-right font-bold text-amber-400">+{eur(TIERHAARE.stark)}</td>
+            </tr>
+            <tr class="border-t border-zinc-800 bg-zinc-900/40 hover:bg-zinc-800/50 transition-colors">
+              <td class="px-4 py-3 font-semibold text-zinc-100">Kindersitz reinigen</td>
+              <td class="px-4 py-3 text-zinc-400">Pro Sitz</td>
+              <td class="px-4 py-3 text-right font-bold text-amber-400">+{eur(KINDERSITZ_PRO_STUECK)}</td>
+            </tr>
+            <tr class="border-t border-zinc-800 hover:bg-zinc-800/50 transition-colors">
+              <td class="px-4 py-3 font-semibold text-zinc-100">
+                <span class="inline-flex items-center gap-1.5">
+                  Starker Nikotingeruch
+                  <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-amber-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-label="Hinweis"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" /></svg>
+                </span>
+              </td>
+              <td class="px-4 py-3 text-zinc-400 text-xs">Ohne Ozongerät kein 100&nbsp;%-Erfolg garantierbar. Vorab besprechen.</td>
+              <td class="px-4 py-3 text-right font-bold text-amber-400">+{eur(NIKOTIN)}</td>
+            </tr>
+            <tr class="border-t border-zinc-800 bg-zinc-900/40 hover:bg-zinc-800/50 transition-colors">
+              <td class="px-4 py-3 font-semibold text-zinc-100">SUV (Q5, X3, Tiguan …)</td>
+              <td class="px-4 py-3 text-zinc-400">+{Math.round(FAHRZEUG_ZUSCHLAG.suv * 100)} % auf Paket</td>
+              <td class="px-4 py-3 text-right font-bold text-amber-400">+{Math.round(FAHRZEUG_ZUSCHLAG.suv * 100)} %</td>
+            </tr>
+            <tr class="border-t border-zinc-800 hover:bg-zinc-800/50 transition-colors">
+              <td class="px-4 py-3 font-semibold text-zinc-100">Van / Bus (T5, Vito, Sharan …)</td>
+              <td class="px-4 py-3 text-zinc-400">+{Math.round(FAHRZEUG_ZUSCHLAG.van * 100)} % auf Paket</td>
+              <td class="px-4 py-3 text-right font-bold text-amber-400">+{Math.round(FAHRZEUG_ZUSCHLAG.van * 100)} %</td>
+            </tr>
+            <tr class="border-t border-zinc-800 bg-zinc-900/40 hover:bg-zinc-800/50 transition-colors">
+              <td class="px-4 py-3 font-semibold text-zinc-100">Lang-Version / 7-Sitzer</td>
+              <td class="px-4 py-3 text-zinc-400">+{Math.round(FAHRZEUG_ZUSCHLAG.lang * 100)} % auf Paket</td>
+              <td class="px-4 py-3 text-right font-bold text-amber-400">+{Math.round(FAHRZEUG_ZUSCHLAG.lang * 100)} %</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Fahrtkosten -->
+    <section id="fahrtkosten" class="mb-12 scroll-mt-20 fade-in-up">
+      <h2 class="text-2xl font-bold mb-2 border-b border-zinc-800 pb-2 text-zinc-100">Fahrtkosten</h2>
+      <p class="text-zinc-400 text-sm mb-4">
+        <strong class="text-zinc-200">10 km Radius</strong> um Cloppenburg ist kostenfrei. Darüber berechnen wir Hin- und Rückfahrt à 0,30 €/km.
+      </p>
+      <div class="bg-zinc-900/70 backdrop-blur-sm rounded-xl border border-zinc-800/70 overflow-hidden">
+        <table class="w-full text-sm">
+          <thead class="bg-zinc-800/80 text-zinc-300">
+            <tr>
+              <th class="text-left px-4 py-3 font-semibold">Entfernung (einfach)</th>
+              <th class="text-right px-4 py-3 font-semibold">Anfahrtskosten</th>
+            </tr>
+          </thead>
+          <tbody>
+            {fahrkostenTabelle.map(({ km, kosten }, i) => (
+              <tr class={`border-t border-zinc-800 hover:bg-zinc-800/50 transition-colors ${i % 2 === 1 ? 'bg-zinc-900/40' : ''}`}>
+                <td class="px-4 py-3 text-zinc-300">{km} km</td>
+                <td class={`px-4 py-3 text-right font-bold ${kosten === 0 ? 'text-green-400' : 'text-amber-400'}`}>
+                  {kosten === 0 ? 'kostenlos' : eur(kosten)}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- LKW / Traktor -->
+    <section id="lkw" class="mb-12 scroll-mt-20 fade-in-up">
+      <h2 class="text-2xl font-bold mb-2 border-b border-zinc-800 pb-2 text-zinc-100">LKW / Traktor / Transporter</h2>
+      <p class="text-zinc-400 text-sm mb-1">
+        Aktuell nur <strong class="text-zinc-200">Innenraum-Aufbereitung</strong>. Außenwäsche ist in Planung.
+      </p>
+      <p class="text-zinc-500 text-xs mb-4">Stundensatz 20 €/h netto, Materialpauschale 3 €/h, Mindestpauschale 40 € netto · Anfahrt wie bei PKW.</p>
+      <div class="bg-zinc-900/70 backdrop-blur-sm rounded-xl border border-zinc-800/70 overflow-hidden">
+        <table class="w-full text-sm">
+          <thead class="bg-zinc-800/80 text-zinc-300">
+            <tr>
+              <th class="text-left px-4 py-3 font-semibold">Leistung</th>
+              <th class="text-left px-4 py-3 font-semibold">Dauer</th>
+              <th class="text-right px-4 py-3 font-semibold">Preis (brutto)</th>
+            </tr>
+          </thead>
+          <tbody>
+            {(Object.entries(LKW_PAKETE) as [string, typeof LKW_PAKETE[keyof typeof LKW_PAKETE]][]).map(([, paket], i) => (
+              <tr class={`border-t border-zinc-800 hover:bg-zinc-800/50 transition-colors ${i % 2 === 1 ? 'bg-zinc-900/40' : ''}`}>
+                <td class="px-4 py-3 font-semibold text-zinc-100">{paket.name}</td>
+                <td class="px-4 py-3 text-zinc-400">{paket.dauer}</td>
+                <td class="px-4 py-3 text-right font-bold text-amber-400">{eur(paket.bruttoPreis)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <p class="text-xs text-zinc-500 mt-3 flex items-start gap-1.5">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-amber-500 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" /></svg>
+        Tierhaare- und Nikotin-Aufpreise gelten auch für Nutzfahrzeuge.
+        Wochenend-Zuschlag +20&nbsp;%, Express-Buchung (&lt;&nbsp;48&nbsp;h) +15&nbsp;%, Mengenrabatt ab 3 Fahrzeugen −10&nbsp;%.
+      </p>
+    </section>
+
+    <!-- CTA -->
+    <div class="relative bg-zinc-900/70 backdrop-blur-sm border border-amber-500/25 rounded-2xl p-8 text-center flex flex-col gap-4 fade-in-up overflow-hidden">
+      <div class="absolute inset-0 pointer-events-none" style="background: radial-gradient(ellipse 60% 60% at 50% 50%, rgba(245,158,11,0.04), transparent)"></div>
+      <h2 class="relative text-2xl font-black tracking-tighter text-zinc-100">Jetzt Preis berechnen</h2>
+      <p class="relative text-zinc-400">Konfigurieren Sie Ihr Fahrzeug im Preisrechner und fragen Sie direkt an.</p>
+      <div class="relative flex flex-col sm:flex-row gap-3 justify-center">
+        <a href="/preisrechner" class="btn-gold px-8 py-3.5 rounded-xl font-bold cursor-pointer min-h-[52px] flex items-center justify-center">
+          Zum Preisrechner
+        </a>
+        <a href="/kontakt" class="border border-zinc-700 hover:border-amber-500/50 hover:bg-amber-500/5 text-zinc-200 transition-all duration-200 px-8 py-3.5 rounded-xl font-bold cursor-pointer min-h-[52px] flex items-center justify-center">
+          Direkt anfragen
+        </a>
+      </div>
+    </div>
+  </div>
+</BaseLayout>

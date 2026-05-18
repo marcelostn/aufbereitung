@@ -1,0 +1,292 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { FIRMA } from '../data/firma';
+import { PKW_PAKETE } from '../data/preise';
+import ScrollReveal from '../components/ScrollReveal.astro';
+
+const fmt = (n: number) =>
+  n.toLocaleString('de-DE', { style: 'currency', currency: 'EUR' });
+
+const leistungen = [
+  {
+    nr: '01',
+    name: 'Außenreinigung',
+    sub: 'Handwäsche · Felgen · Lackpflege',
+    preis: fmt(PKW_PAKETE.aussen.bruttoPreis),
+    meta: `ca. ${PKW_PAKETE.aussen.dauer} · inkl. MwSt.`,
+    href: '/leistungen#aussen',
+    badge: null as string | null,
+  },
+  {
+    nr: '02',
+    name: 'Innenreinigung',
+    sub: 'Basic · Premium · Full Detail',
+    preis: `ab ${fmt(PKW_PAKETE.innen_basic.bruttoPreis)}`,
+    meta: 'inkl. MwSt.',
+    href: '/leistungen#innen',
+    badge: null as string | null,
+  },
+  {
+    nr: '03',
+    name: 'Komplett-Paket',
+    sub: 'Außen + Innen · 30 % Bündelrabatt',
+    preis: `ab ${fmt(PKW_PAKETE.komplett_basic.bruttoPreis)}`,
+    meta: 'inkl. MwSt.',
+    href: '/leistungen#komplett',
+    badge: '−30 %',
+  },
+];
+---
+
+<BaseLayout
+  title="Startseite"
+  description={`Mobiler Autoaufbereitungs-Service in ${FIRMA.ort}. Professionell, fair und direkt bei Ihnen vor Ort.`}
+>
+  <link rel="preload" href="/animations/detailing-intro.webm" as="video" type="video/webm" />
+
+  <!-- ══════════════════════════════════════════
+       HERO
+  ══════════════════════════════════════════ -->
+  <section class="relative bg-zinc-950 text-white overflow-hidden">
+    <video
+      id="hero-video"
+      class="absolute inset-0 w-full h-full object-cover hero-video"
+      style="object-position:center 60%;"
+      muted loop playsinline preload="auto" aria-hidden="true"
+    >
+      <source src="/animations/detailing-intro.webm" type="video/webm" />
+      <source src="/animations/detailing-intro.mp4"  type="video/mp4"  />
+    </video>
+    <div class="absolute inset-0 pointer-events-none" style="background:linear-gradient(180deg,rgba(15,17,19,0.80) 0%,rgba(15,17,19,0.48) 40%,rgba(15,17,19,0.72) 75%,#09090b 100%);"></div>
+    <div class="absolute inset-0 pointer-events-none" style="background:radial-gradient(ellipse 70% 60% at 50% 44%,transparent 0%,rgba(15,17,19,0.38) 100%);"></div>
+
+    <div class="relative max-w-5xl mx-auto px-4 sm:px-6 py-28 sm:py-44 min-h-[82vh] flex flex-col items-center justify-center text-center gap-7">
+
+      <p class="text-zinc-400 text-xs tracking-[0.28em] uppercase">{FIRMA.ort} &amp; Umgebung</p>
+
+      <h1 class="chrome-sweep text-5xl sm:text-6xl lg:text-[5.5rem] leading-[1.0] max-w-2xl">
+        Ihr Auto –<br />blitzblank.
+      </h1>
+
+      <p class="max-w-md text-lg sm:text-xl text-zinc-300 leading-relaxed">
+        Professionelle Aufbereitung, mobil und<br class="hidden sm:block" />direkt bei Ihnen vor Ort.
+      </p>
+
+      <div class="flex flex-col sm:flex-row gap-3 mt-1">
+        <a
+          href="/preisrechner"
+          class="btn-gold px-8 py-3.5 rounded-xl font-bold text-lg min-h-[52px] flex items-center justify-center"
+        >
+          Preis berechnen
+        </a>
+        <a
+          href="/kontakt"
+          class="bg-white/8 hover:bg-white/14 border border-white/15 backdrop-blur-md transition-colors duration-200 px-8 py-3.5 rounded-xl font-bold text-lg min-h-[52px] flex items-center justify-center"
+        >
+          Termin anfragen
+        </a>
+      </div>
+
+      <p class="text-zinc-500 text-sm tracking-wide">Mobil · Versichert · Festpreise inkl. MwSt.</p>
+    </div>
+  </section>
+
+  <!-- Goldener Shimmer-Trenner -->
+  <div aria-hidden="true" class="h-px bg-gradient-to-r from-transparent via-amber-500/25 to-transparent"></div>
+
+  <!-- ══════════════════════════════════════════
+       LEISTUNGEN – editoriale Liste statt Kacheln
+  ══════════════════════════════════════════ -->
+  <section class="bg-zinc-950 py-20 sm:py-28 fade-in-up">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6">
+
+      <div class="flex items-end justify-between mb-10">
+        <p class="text-amber-400/80 text-xs font-semibold tracking-[0.22em] uppercase before:content-['·'] before:mr-2 before:text-amber-400">Leistungen &amp; Preise</p>
+        <p class="text-zinc-600 text-xs">PKW · LKW · Traktor · Transporter</p>
+      </div>
+
+      <!-- Zeilen -->
+      <div>
+        {leistungen.map((l) => (
+          <a
+            href={l.href}
+            class={[
+              'group flex items-center gap-4 sm:gap-6 py-5 sm:py-6 border-b transition-colors duration-200',
+              l.badge
+                ? 'border-amber-500/25 hover:border-amber-400/60'
+                : 'border-zinc-800 hover:border-zinc-700',
+            ].join(' ')}
+          >
+            <span class="text-zinc-600 text-xs font-mono w-7 shrink-0 tabular-nums">{l.nr}</span>
+
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center gap-2.5 flex-wrap">
+                <h3 class={[
+                  'text-lg sm:text-xl font-bold transition-colors duration-200',
+                  l.badge ? 'text-amber-400 group-hover:text-amber-300' : 'text-zinc-100 group-hover:text-amber-400',
+                ].join(' ')}>
+                  {l.name}
+                </h3>
+                {l.badge && (
+                  <span class="bg-amber-400 text-amber-950 text-xs font-bold px-2 py-0.5 rounded-full leading-none">
+                    {l.badge}
+                  </span>
+                )}
+              </div>
+              <p class="text-zinc-500 text-sm mt-0.5">{l.sub}</p>
+            </div>
+
+            <div class="text-right shrink-0">
+              <p class="text-zinc-100 font-bold tabular-nums">{l.preis}</p>
+              <p class="text-zinc-600 text-xs mt-0.5">{l.meta}</p>
+            </div>
+
+            <svg xmlns="http://www.w3.org/2000/svg"
+              class="w-4 h-4 shrink-0 text-zinc-700 group-hover:text-amber-400 group-hover:translate-x-1 transition-all duration-200"
+              fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
+            </svg>
+          </a>
+        ))}
+      </div>
+
+      <div class="mt-7 text-right">
+        <a href="/leistungen"
+          class="inline-flex items-center gap-1.5 text-zinc-500 hover:text-amber-400 transition-colors text-sm">
+          Alle Leistungen &amp; Details
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" /></svg>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════
+       SO LÄUFT'S AB – 3 Schritte
+  ══════════════════════════════════════════ -->
+  <section class="bg-zinc-950 py-16 sm:py-20 fade-in-up">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6">
+
+      <p class="text-amber-400/80 text-xs font-semibold tracking-[0.22em] uppercase before:content-['·'] before:mr-2 before:text-amber-400 mb-10">So läuft's ab</p>
+
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-8 sm:gap-10">
+
+        <div class="flex gap-4">
+          <span class="text-amber-400/50 font-mono text-xs mt-0.5 w-7 shrink-0 tabular-nums">01</span>
+          <div>
+            <h3 class="text-zinc-100 font-bold text-base mb-1.5">Anfragen</h3>
+            <p class="text-zinc-500 text-sm leading-relaxed">Preis berechnen, Termin wählen – online in 60 Sekunden.</p>
+          </div>
+        </div>
+
+        <div class="flex gap-4">
+          <span class="text-amber-400/50 font-mono text-xs mt-0.5 w-7 shrink-0 tabular-nums">02</span>
+          <div>
+            <h3 class="text-zinc-100 font-bold text-base mb-1.5">Termin bestätigen</h3>
+            <p class="text-zinc-500 text-sm leading-relaxed">Wir bestätigen Ihren Wunschtermin mit dem Festpreis – keine versteckten Kosten.</p>
+          </div>
+        </div>
+
+        <div class="flex gap-4">
+          <span class="text-amber-400/50 font-mono text-xs mt-0.5 w-7 shrink-0 tabular-nums">03</span>
+          <div>
+            <h3 class="text-zinc-100 font-bold text-base mb-1.5">Aufbereitung vor Ort</h3>
+            <p class="text-zinc-500 text-sm leading-relaxed">Wir kommen zu Ihnen. Sie lehnen sich zurück – Ihr Auto wird blitzblank.</p>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- Übergang: Leistungen → ScrollReveal -->
+  <div aria-hidden="true" style="height:14rem;margin-top:-14rem;background:linear-gradient(180deg,transparent 0%,#09090b 100%);position:relative;z-index:2;pointer-events:none;"></div>
+
+  <!-- ══════════════════════════════════════════
+       SCROLL-REVEAL
+  ══════════════════════════════════════════ -->
+  <ScrollReveal />
+
+  <!-- ══════════════════════════════════════════
+       ABSCHLUSS – CTA + Vertrauen kombiniert
+  ══════════════════════════════════════════ -->
+  <section class="bg-zinc-950 py-24 sm:py-32" style="background:radial-gradient(ellipse 80% 50% at 50% 0%, rgba(217,119,6,0.06) 0%, transparent 70%), #09090b;">
+    <div class="max-w-2xl mx-auto px-4 sm:px-6 text-center fade-in-up">
+
+      <!-- Sterne-Bewertungs-Platzhalter -->
+      <div class="flex items-center justify-center gap-2.5 mb-10">
+        <div class="flex gap-px text-amber-400 text-xl leading-none" aria-label="5 von 5 Sternen" role="img">★★★★★</div>
+        <p class="text-zinc-500 text-sm">Erste Bewertungen folgen bald</p>
+      </div>
+
+      <div aria-hidden="true" class="w-10 h-px bg-amber-400/60 mx-auto mb-8"></div>
+      <h2 class="text-3xl sm:text-5xl font-black tracking-tighter text-zinc-100 leading-[1.08] mb-5">
+        Bereit für ein<br />makelloses Auto?
+      </h2>
+      <p class="text-zinc-400 text-lg leading-relaxed mb-10">
+        Preis in 60 Sekunden berechnen –<br class="hidden sm:block" />kostenlos und unverbindlich.
+      </p>
+
+      <div class="flex flex-col sm:flex-row gap-3 justify-center">
+        <a
+          href="/preisrechner"
+          class="btn-gold inline-flex items-center justify-center gap-2 px-10 py-4 rounded-xl font-bold text-lg"
+        >
+          Preisrechner starten
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
+          </svg>
+        </a>
+        <a
+          href="/kontakt"
+          class="border border-zinc-700 hover:border-zinc-500 text-zinc-300 hover:text-zinc-100 transition-colors duration-200 px-10 py-4 rounded-xl font-bold text-lg inline-flex items-center justify-center"
+        >
+          Kontakt aufnehmen
+        </a>
+      </div>
+
+      <!-- Vertrauen als reine Typografie – keine Kacheln -->
+      <div class="mt-14 pt-10 border-t border-amber-500/15 grid grid-cols-3 gap-4 sm:gap-8">
+        <div>
+          <p class="font-bold text-zinc-200 text-sm sm:text-base">Mobil</p>
+          <p class="text-zinc-600 text-xs sm:text-sm mt-1">Direkt zu Ihnen</p>
+        </div>
+        <div>
+          <p class="font-bold text-zinc-200 text-sm sm:text-base">Versichert</p>
+          <p class="text-zinc-600 text-xs sm:text-sm mt-1">Betriebshaftpflicht</p>
+        </div>
+        <div>
+          <p class="font-bold text-zinc-200 text-sm sm:text-base">Festpreise</p>
+          <p class="text-zinc-600 text-xs sm:text-sm mt-1">Inkl. 19&nbsp;% MwSt.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <style>
+    .hero-video { opacity: 0; transition: opacity 0.8s ease; }
+    .hero-video.is-playing { opacity: 1; }
+    @media (prefers-reduced-motion: reduce) {
+      .hero-video { transition: none; }
+    }
+  </style>
+
+  <script>
+    const hv = document.getElementById('hero-video') as HTMLVideoElement | null;
+    if (hv) {
+      const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      if (reduce) {
+        hv.poster = '/images/after-1.jpg';
+        hv.classList.add('is-playing');
+      } else {
+        const show = () => hv.classList.add('is-playing');
+        hv.addEventListener('playing', show, { once: true });
+        hv.addEventListener('canplay', () => {
+          const p = hv.play();
+          if (p && typeof p.catch === 'function') p.catch(show);
+        }, { once: true });
+        const p = hv.play();
+        if (p && typeof p.catch === 'function') p.catch(() => {});
+      }
+    }
+  </script>
+</BaseLayout>

@@ -1,0 +1,86 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { FIRMA } from '../data/firma';
+---
+
+<BaseLayout
+  title="Impressum"
+  description="Impressum und rechtliche Angaben"
+>
+  <div class="max-w-3xl mx-auto px-4 py-12">
+    <!-- ⚠️ TODO: VOR GO-LIVE AUSFÜLLEN – Alle Platzhalter ersetzen! -->
+    <div class="bg-yellow-50 border-2 border-yellow-400 rounded-xl p-5 mb-8">
+      <p class="font-bold text-yellow-800">⚠️ TODO: Vor der Veröffentlichung ausfüllen!</p>
+      <p class="text-yellow-700 text-sm mt-1">
+        Alle mit [TODO] markierten Felder müssen vor dem Go-Live mit echten Daten befüllt werden.
+        Unvollständige Impressumsangaben verstoßen gegen § 5 DDG (ehemals TMG) und können abgemahnt werden.
+      </p>
+    </div>
+
+    <h1 class="text-3xl font-extrabold mb-8">Impressum</h1>
+
+    <div class="prose max-w-none text-gray-700 space-y-6">
+      <section>
+        <h2 class="text-lg font-bold">Angaben gemäß § 5 DDG</h2>
+        <p>
+          {FIRMA.inhaber} [TODO: Vor- und Nachname]<br />
+          {FIRMA.name}<br />
+          {FIRMA.strasse ? FIRMA.strasse : '[TODO: Straße und Hausnummer]'}<br />
+          {FIRMA.plz} {FIRMA.ort}
+        </p>
+      </section>
+
+      <section>
+        <h2 class="text-lg font-bold">Kontakt</h2>
+        <p>
+          Telefon: {FIRMA.telefon}<br />
+          E-Mail: <a href={`mailto:${FIRMA.email}`} class="text-blue-700 hover:underline">{FIRMA.email}</a>
+        </p>
+      </section>
+
+      <section>
+        <h2 class="text-lg font-bold">Umsatzsteuer-Identifikationsnummer</h2>
+        <p>
+          Umsatzsteuer-Identifikationsnummer gemäß § 27 a Umsatzsteuergesetz:<br />
+          {FIRMA.ustIdNr} [TODO: nach Finanzamts-Bescheid eintragen]
+        </p>
+      </section>
+
+      <section>
+        <h2 class="text-lg font-bold">Verantwortlich für den Inhalt nach § 18 Abs. 2 MStV</h2>
+        <p>
+          [TODO: Vor- und Nachname Inhaber]<br />
+          [TODO: Anschrift]
+        </p>
+      </section>
+
+      <section>
+        <h2 class="text-lg font-bold">Haftung für Inhalte</h2>
+        <p class="text-sm">
+          Als Diensteanbieter sind wir gemäß § 7 Abs.1 DDG für eigene Inhalte auf diesen Seiten nach den
+          allgemeinen Gesetzen verantwortlich. Nach §§ 8 bis 10 DDG sind wir als Diensteanbieter jedoch nicht
+          verpflichtet, übermittelte oder gespeicherte fremde Informationen zu überwachen oder nach Umständen zu
+          forschen, die auf eine rechtswidrige Tätigkeit hinweisen.
+        </p>
+      </section>
+
+      <section>
+        <h2 class="text-lg font-bold">Haftung für Links</h2>
+        <p class="text-sm">
+          Unser Angebot enthält Links zu externen Websites Dritter, auf deren Inhalte wir keinen Einfluss haben.
+          Deshalb können wir für diese fremden Inhalte auch keine Gewähr übernehmen. Für die Inhalte der verlinkten
+          Seiten ist stets der jeweilige Anbieter oder Betreiber der Seiten verantwortlich.
+        </p>
+      </section>
+
+      <section>
+        <h2 class="text-lg font-bold">Urheberrecht</h2>
+        <p class="text-sm">
+          Die durch die Seitenbetreiber erstellten Inhalte und Werke auf diesen Seiten unterliegen dem deutschen
+          Urheberrecht. Die Vervielfältigung, Bearbeitung, Verbreitung und jede Art der Verwertung außerhalb der
+          Grenzen des Urheberrechtes bedürfen der schriftlichen Zustimmung des jeweiligen Autors bzw. Erstellers.
+        </p>
+      </section>
+    </div>
+  </div>
+</BaseLayout>

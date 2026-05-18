@@ -1,0 +1,12 @@
+{
+  "tierhaare_leicht": 15,
+  "tierhaare_mittel": 25,
+  "tierhaare_stark": 45,
+  "kindersitz": 20,
+  "nikotin": 40,
+  "suv_zuschlag": 0.15,
+  "van_zuschlag": 0.3,
+  "lang_zuschlag": 0.2,
+  "frei_radius_km": 10,
+  "km_preis": 0.3
+}

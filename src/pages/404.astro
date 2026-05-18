@@ -1,0 +1,22 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+---
+
+<BaseLayout title="Seite nicht gefunden" description="Diese Seite existiert nicht.">
+  <div class="max-w-2xl mx-auto px-4 py-24 text-center">
+    <div class="text-8xl font-extrabold text-blue-100 mb-4">404</div>
+    <h1 class="text-3xl font-bold mb-4">Seite nicht gefunden</h1>
+    <p class="text-gray-500 mb-8">Die gesuchte Seite existiert leider nicht. Vielleicht hilft Ihnen einer dieser Links weiter:</p>
+    <div class="flex flex-col sm:flex-row gap-4 justify-center">
+      <a href="/" class="bg-blue-900 text-white hover:bg-blue-800 transition-colors px-6 py-3 rounded-xl font-bold">
+        Zur Startseite
+      </a>
+      <a href="/leistungen" class="border border-blue-900 text-blue-900 hover:bg-blue-50 transition-colors px-6 py-3 rounded-xl font-bold">
+        Leistungen & Preise
+      </a>
+      <a href="/kontakt" class="border border-blue-900 text-blue-900 hover:bg-blue-50 transition-colors px-6 py-3 rounded-xl font-bold">
+        Kontakt
+      </a>
+    </div>
+  </div>
+</BaseLayout>

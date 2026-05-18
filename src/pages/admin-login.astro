@@ -1,0 +1,136 @@
+---
+export const prerender = false;
+import { hashPasswort } from '../lib/auth';
+
+let fehler = false;
+const passwort = import.meta.env.CMS_PASSWORT;
+const weiterParam = Astro.url.searchParams.get('weiter') ?? '';
+const weiter = weiterParam || '/admin/rechnung';
+
+if (Astro.request.method === 'POST' && passwort) {
+  const form = await Astro.request.formData();
+  const eingabe = String(form.get('passwort') ?? '');
+
+  if (eingabe === passwort) {
+    const hash = await hashPasswort(passwort);
+    Astro.cookies.set('cms_auth', hash, {
+      httpOnly: true,
+      sameSite: 'lax',
+      path: '/',
+      // Kein maxAge = Session-Cookie, läuft beim Browser-Schließen ab
+    });
+    return Astro.redirect(weiter);
+  } else {
+    fehler = true;
+  }
+}
+---
+
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Admin Login</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap');
+      *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+      body {
+        font-family: 'Inter', system-ui, sans-serif;
+        background: #0f1113;
+        color: #f2f3f5;
+        min-height: 100svh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 1rem;
+      }
+      .card {
+        background: rgba(30,33,37,0.8);
+        border: 1px solid rgba(44,48,54,0.6);
+        border-radius: 1.25rem;
+        padding: 2.5rem 2rem;
+        width: 100%;
+        max-width: 380px;
+        backdrop-filter: blur(8px);
+        box-shadow: 0 24px 48px rgba(0,0,0,0.4);
+      }
+      .logo {
+        width: 44px; height: 44px;
+        background: rgba(199,204,211,0.10);
+        border: 1px solid rgba(199,204,211,0.22);
+        border-radius: 0.75rem;
+        display: flex; align-items: center; justify-content: center;
+        margin-bottom: 1.5rem;
+      }
+      .logo svg { width: 22px; height: 22px; color: #c7ccd3; }
+      h1 { font-size: 1.35rem; font-weight: 900; letter-spacing: -0.03em; margin-bottom: 0.4rem; }
+      p  { font-size: 0.85rem; color: #71717a; margin-bottom: 2rem; }
+      label { display: block; font-size: 0.8rem; font-weight: 600; color: #a1a1aa; margin-bottom: 0.5rem; }
+      input[type="password"] {
+        width: 100%;
+        background: rgba(39,39,42,0.8);
+        border: 1px solid #3f3f46;
+        border-radius: 0.6rem;
+        padding: 0.75rem 1rem;
+        font-size: 1rem; font-family: inherit;
+        color: #f4f4f5;
+        outline: none;
+        transition: border-color 0.15s;
+      }
+      input[type="password"]:focus { border-color: #c9a86a; }
+      .fehler {
+        background: rgba(239,68,68,0.1);
+        border: 1px solid rgba(239,68,68,0.3);
+        border-radius: 0.5rem;
+        padding: 0.65rem 0.85rem;
+        font-size: 0.82rem;
+        color: #fca5a5;
+        margin-top: 0.75rem;
+      }
+      button {
+        margin-top: 1.25rem;
+        width: 100%;
+        background: #c9a86a;
+        color: #15171a;
+        font-weight: 700; font-size: 1rem; font-family: inherit;
+        border: none; border-radius: 0.75rem;
+        padding: 0.85rem;
+        cursor: pointer;
+        transition: background 0.15s;
+        min-height: 48px;
+      }
+      button:hover { background: #d8ba80; }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <div class="logo">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z" />
+        </svg>
+      </div>
+      <h1>Admin Login</h1>
+      <p>Gib dein Passwort ein um das CMS zu öffnen.</p>
+
+      <form method="POST">
+        <input type="hidden" name="weiter" value={weiter} />
+        <label for="passwort">Passwort</label>
+        <input
+          id="passwort"
+          type="password"
+          name="passwort"
+          autocomplete="current-password"
+          autofocus
+          required
+        />
+        {fehler && (
+          <div class="fehler">Falsches Passwort. Bitte erneut versuchen.</div>
+        )}
+        <button type="submit">Anmelden</button>
+      </form>
+    </div>
+  </body>
+</html>

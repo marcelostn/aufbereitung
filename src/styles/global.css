@@ -1,0 +1,121 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,400&family=Cormorant:wght@400;500;600;700&display=swap');
+@import "tailwindcss";
+
+/* ============================================================
+   Design-System: "Graphit + Chrome/Platin"
+   Remap der Tailwind-Skalen zinc → warmes Graphit,
+   amber/orange → Chrome/Platin. Gold ausschließlich via .btn-gold.
+   ============================================================ */
+@theme {
+  /* Graphit-Neutralskala (Backgrounds + Text) */
+  --color-zinc-950: #0f1113;
+  --color-zinc-900: #15171a;
+  --color-zinc-800: #1e2125;
+  --color-zinc-700: #2c3036;
+  --color-zinc-600: #474c54;
+  --color-zinc-500: #6a6f78;
+  --color-zinc-400: #9aa0a8;
+  --color-zinc-300: #c3c7cd;
+  --color-zinc-200: #dddfe3;
+  --color-zinc-100: #f2f3f5;
+  --color-zinc-50:  #f8f9fa;
+
+  /* Chrome / Platin (ehem. Amber-Akzent) */
+  --color-amber-300: #dde0e5;
+  --color-amber-400: #c7ccd3;
+  --color-amber-500: #9aa0a8;
+  --color-amber-600: #7e848d;
+  --color-amber-900: #2c3036;
+
+  /* Orange-Reste (Header-CTAs) → Champagner-Gold */
+  --color-orange-500: #c9a86a;
+  --color-orange-400: #d8ba80;
+
+  --font-display: 'Cormorant', Georgia, 'Times New Roman', serif;
+}
+
+@layer base {
+  html {
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  body {
+    line-height: 1.65;
+  }
+
+  h3, h4 {
+    line-height: 1.25;
+    letter-spacing: -0.01em;
+  }
+}
+
+/* Unlayered: schlägt Tailwind-Utilities (font-black/tracking-*)
+   damit die Display-Serif sauber greift. */
+h1, h2 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  line-height: 1.12;
+  letter-spacing: -0.005em;
+}
+
+/* Champagner-Gold ausschließlich für primäre Conversion-Buttons */
+.btn-gold {
+  background-color: #c9a86a;
+  color: #15171a;
+  box-shadow: 0 8px 24px -8px rgba(201, 168, 106, 0.45);
+  transition: background-color 0.2s ease, box-shadow 0.2s ease;
+}
+.btn-gold:hover {
+  background-color: #d8ba80;
+  box-shadow: 0 10px 28px -8px rgba(216, 186, 128, 0.55);
+}
+
+/* Chrome-Sweep: einmaliger Metallglanz über die Hero-Headline */
+.chrome-sweep {
+  background-image: linear-gradient(
+    110deg,
+    #eef0f2 0%, #eef0f2 32%,
+    #ffffff 48%, #b9bec6 60%,
+    #eef0f2 78%, #eef0f2 100%
+  );
+  background-size: 240% 100%;
+  background-position: 120% 0;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: chrome-sweep 2.4s cubic-bezier(0.22, 1, 0.36, 1) 0.45s 1 both;
+}
+@keyframes chrome-sweep {
+  to { background-position: 0% 0; }
+}
+
+/* Scroll entrance animations */
+.fade-in-up {
+  opacity: 0;
+  transform: translateY(28px);
+  transition: opacity 0.55s ease, transform 0.55s ease;
+}
+
+.fade-in-up.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.fade-in-up.delay-1 { transition-delay: 0.1s; }
+.fade-in-up.delay-2 { transition-delay: 0.2s; }
+.fade-in-up.delay-3 { transition-delay: 0.3s; }
+
+@media (prefers-reduced-motion: reduce) {
+  .fade-in-up {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+  .chrome-sweep {
+    animation: none;
+    background-image: none;
+    color: #f2f3f5;
+  }
+}
