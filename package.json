@@ -17,7 +17,6 @@
     "@astrojs/node": "^10.1.0",
     "@astrojs/react": "^5.0.4",
     "@astrojs/vercel": "^10.0.7",
-    "@google/model-viewer": "^4.2.0",
     "@keystatic/astro": "^5.0.6",
     "@keystatic/core": "^0.5.50",
     "@tailwindcss/vite": "^4.3.0",

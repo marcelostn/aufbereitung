@@ -298,6 +298,10 @@ function EntfernungSchritt({ entfernungKm, dispatch }: { entfernungKm: number; d
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Laufende Nummer der Autocomplete-Anfrage – verhindert, dass eine veraltete
+  // (noch laufende) fetch-Antwort die Vorschlagsliste wieder aufpoppt,
+  // nachdem der Nutzer schon eine Adresse gewählt oder weitergetippt hat.
+  const reqIdRef = useRef(0);
 
   const handleAdresseChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
@@ -307,11 +311,13 @@ function EntfernungSchritt({ entfernungKm, dispatch }: { entfernungKm: number; d
     setShowSuggestions(false);
     if (debounceRef.current) clearTimeout(debounceRef.current);
     if (val.length >= 4) {
+      const myReq = ++reqIdRef.current;
       debounceRef.current = setTimeout(async () => {
         try {
           const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(val)}&format=json&limit=5&countrycodes=de`;
           const res = await fetch(url, { headers: { 'User-Agent': 'AutoaufbereitungCloppenburg/1.0' } });
           const data: any[] = await res.json();
+          if (myReq !== reqIdRef.current) return; // veraltete Antwort verwerfen
           if (data.length > 0) {
             setSuggestions(data.map((d) => d.display_name));
             setShowSuggestions(true);
@@ -324,6 +330,8 @@ function EntfernungSchritt({ entfernungKm, dispatch }: { entfernungKm: number; d
   };
 
   const selectSuggestion = (sug: string) => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    reqIdRef.current++; // jede noch laufende Anfrage ungültig machen
     setAdresse(sug);
     setSuggestions([]);
     setShowSuggestions(false);

@@ -36,6 +36,37 @@ const leistungen = [
     badge: '−30 %',
   },
 ];
+
+// Telefon nur anzeigen, wenn echte Nummer hinterlegt ist (Platzhalter enthält "X")
+const hasTelefon = !!FIRMA.telefon && !FIRMA.telefon.toUpperCase().includes('X');
+const telHref = hasTelefon ? `tel:${FIRMA.telefon.replace(/[^\d+]/g, '')}` : '';
+
+const faqs = [
+  {
+    q: 'Brauchen Sie Wasser- und Stromanschluss von mir?',
+    a: 'Für die meisten Aufbereitungen bringen wir alles selbst mit. Sollte für Ihren Auftrag Wasser oder Strom nötig sein, sagen wir das vorher klar – keine Überraschungen vor Ort.',
+  },
+  {
+    q: 'Wie lange dauert eine Aufbereitung?',
+    a: 'Je nach Paket zwischen ca. 1,5 Stunden (Außen/Innen Basic) und 4 Stunden (Full Detail). Den genauen Richtwert sehen Sie beim jeweiligen Paket im Preisrechner.',
+  },
+  {
+    q: 'Was passiert bei schlechtem Wetter?',
+    a: 'Innenaufbereitungen sind weitgehend wetterunabhängig. Bei starkem Regen für Außenarbeiten verschieben wir den Termin unkompliziert auf einen passenden Tag – ohne Zusatzkosten.',
+  },
+  {
+    q: 'Kommen Sie wirklich zu mir nach Hause oder zur Arbeit?',
+    a: `Ja. Wir sind ein mobiler Service und kommen dorthin, wo Ihr Auto steht – in ${FIRMA.ort} und Umgebung. Bis 10 km um ${FIRMA.ort} ist die Anfahrt kostenlos.`,
+  },
+  {
+    q: 'Wie bezahle ich?',
+    a: 'Bequem direkt vor Ort nach getaner Arbeit – bar oder per Karte. Den Festpreis kennen Sie schon bei der Terminbestätigung.',
+  },
+  {
+    q: 'Was, wenn ich nicht zufrieden bin?',
+    a: 'Dann sagen Sie es uns direkt vor Ort – wir bessern nach, bis es passt. Saubere Arbeit ist unser Anspruch, nicht nur ein Versprechen.',
+  },
+];
 ---
 
 <BaseLayout
@@ -86,6 +117,15 @@ const leistungen = [
           Termin anfragen
         </a>
       </div>
+
+      {hasTelefon && (
+        <a href={telHref} class="group inline-flex items-center gap-2 text-zinc-300 hover:text-amber-400 transition-colors duration-200 -mt-1">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-amber-400/80" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 0 0 2.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 0 1-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 0 0-1.091-.852H4.5A2.25 2.25 0 0 0 2.25 4.5v2.25Z" />
+          </svg>
+          <span class="text-sm">Lieber anrufen? <span class="font-bold tabular-nums group-hover:underline">{FIRMA.telefon}</span></span>
+        </a>
+      )}
 
       <p class="text-zinc-500 text-sm tracking-wide">Mobil · Versichert · Festpreise inkl. MwSt.</p>
     </div>
@@ -207,15 +247,47 @@ const leistungen = [
   <ScrollReveal />
 
   <!-- ══════════════════════════════════════════
+       FAQ – häufige Fragen
+  ══════════════════════════════════════════ -->
+  <section class="bg-zinc-950 py-20 sm:py-28 fade-in-up" style="background:#09090b;">
+    <div class="max-w-3xl mx-auto px-4 sm:px-6">
+
+      <p class="text-amber-400/80 text-xs font-semibold tracking-[0.22em] uppercase before:content-['·'] before:mr-2 before:text-amber-400 mb-3">Häufige Fragen</p>
+      <h2 class="text-3xl sm:text-4xl font-black tracking-tighter text-zinc-100 mb-10">Gut zu wissen, vorab.</h2>
+
+      <div class="divide-y divide-zinc-800 border-y border-zinc-800">
+        {faqs.map((f) => (
+          <details class="faq group">
+            <summary class="flex items-center justify-between gap-4 py-5 cursor-pointer list-none">
+              <span class="text-zinc-100 font-bold text-base sm:text-lg pr-2">{f.q}</span>
+              <svg xmlns="http://www.w3.org/2000/svg" class="faq-chevron w-5 h-5 shrink-0 text-zinc-600 transition-transform duration-200" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
+              </svg>
+            </summary>
+            <p class="text-zinc-400 text-sm sm:text-base leading-relaxed pb-5 -mt-1 pr-8">{f.a}</p>
+          </details>
+        ))}
+      </div>
+
+      <p class="text-zinc-600 text-sm mt-8 text-center">
+        Noch eine Frage?
+        <a href="/kontakt" class="text-amber-400 hover:text-amber-300 transition-colors font-semibold">Schreiben Sie uns →</a>
+      </p>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════
        ABSCHLUSS – CTA + Vertrauen kombiniert
   ══════════════════════════════════════════ -->
   <section class="bg-zinc-950 py-24 sm:py-32" style="background:radial-gradient(ellipse 80% 50% at 50% 0%, rgba(217,119,6,0.06) 0%, transparent 70%), #09090b;">
     <div class="max-w-2xl mx-auto px-4 sm:px-6 text-center fade-in-up">
 
-      <!-- Sterne-Bewertungs-Platzhalter -->
-      <div class="flex items-center justify-center gap-2.5 mb-10">
-        <div class="flex gap-px text-amber-400 text-xl leading-none" aria-label="5 von 5 Sternen" role="img">★★★★★</div>
-        <p class="text-zinc-500 text-sm">Erste Bewertungen folgen bald</p>
+      <!-- Ehrliches Qualitätsversprechen statt Fake-Sterne -->
+      <div class="inline-flex items-center gap-2.5 mb-10 px-4 py-2 rounded-full border border-amber-500/25 bg-amber-500/[0.06]">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-amber-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+        </svg>
+        <p class="text-zinc-300 text-sm">Jedes Auto wird behandelt, als wäre es unseres.</p>
       </div>
 
       <div aria-hidden="true" class="w-10 h-px bg-amber-400/60 mx-auto mb-8"></div>
@@ -268,6 +340,12 @@ const leistungen = [
     @media (prefers-reduced-motion: reduce) {
       .hero-video { transition: none; }
     }
+
+    /* FAQ-Accordion: nativer <details>-Marker aus, Chevron dreht beim Öffnen */
+    .faq summary::-webkit-details-marker { display: none; }
+    .faq summary::marker { content: ''; }
+    .faq[open] .faq-chevron { transform: rotate(180deg); color: #fbbf24; }
+    .faq summary:hover span { color: #fbbf24; }
   </style>
 
   <script>
