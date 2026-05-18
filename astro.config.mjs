@@ -4,12 +4,10 @@ import tailwindcss from '@tailwindcss/vite';
 import react from '@astrojs/react';
 import sitemap from '@astrojs/sitemap';
 import keystatic from '@keystatic/astro';
-import node from '@astrojs/node';
+import vercel from '@astrojs/vercel';
 
 export default defineConfig({
-  // 'static' = alle Seiten bleiben statisch; /keystatic-Routen haben prerender=false (SSR)
-  // Adapter nur für `npm run build` nötig; für Vercel/Netlify später den Adapter tauschen
-  adapter: node({ mode: 'standalone' }),
+  adapter: vercel(),
   site: 'https://autoaufbereitung-cloppenburg.de', // TODO: echte Domain eintragen
   vite: {
     plugins: [tailwindcss()],
