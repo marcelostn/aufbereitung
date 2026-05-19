@@ -30,7 +30,28 @@ export const onRequest = defineMiddleware(async (context, next) => {
 
   const passwort = import.meta.env.CMS_PASSWORT;
   if (!passwort) {
-    return next();
+    // Kein Passwort konfiguriert:
+    //  - lokal (Dev-Server): durchlassen — nur auf diesem PC erreichbar, Komfort
+    //  - Produktion: NICHT durchlassen, sonst ist der Admin-/CMS-Bereich
+    //    für jeden im Internet offen (fail-closed statt fail-open).
+    if (import.meta.env.DEV) {
+      return next();
+    }
+    return new Response(
+      `<!doctype html><html lang="de"><head><meta charset="utf-8">` +
+        `<meta name="viewport" content="width=device-width, initial-scale=1">` +
+        `<title>Admin gesperrt</title></head>` +
+        `<body style="font-family:system-ui,sans-serif;background:#0f1113;color:#f2f3f5;` +
+        `display:flex;align-items:center;justify-content:center;min-height:100vh;` +
+        `margin:0;padding:1.5rem;text-align:center">` +
+        `<div style="max-width:34rem">` +
+        `<h1 style="font-size:1.4rem;margin:0 0 .75rem">Admin-Bereich nicht freigeschaltet</h1>` +
+        `<p style="color:#9aa0a8;line-height:1.6;margin:0">Es ist kein Admin-Passwort ` +
+        `konfiguriert. Aus Sicherheitsgründen ist dieser Bereich gesperrt. Setze die ` +
+        `Umgebungsvariable <code>CMS_PASSWORT</code> in den Projekteinstellungen, ` +
+        `um ihn freizuschalten.</p></div></body></html>`,
+      { status: 503, headers: { 'content-type': 'text/html; charset=utf-8' } }
+    );
   }
 
   const cookie = context.cookies.get('cms_auth');

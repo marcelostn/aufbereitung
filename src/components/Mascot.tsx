@@ -51,12 +51,12 @@ export default function Mascot() {
     : 'translateX(0px) translateY(0px) rotate(0deg)';
 
   return (
-    <div className="fixed bottom-0 right-24 z-40 flex flex-col items-end select-none">
+    <div className="fixed bottom-0 right-24 z-40 hidden sm:flex flex-col items-end select-none pointer-events-none">
       {/* ── Speech bubble ── */}
       <div
         className={`relative mb-2 mr-2 w-60 rounded-2xl bg-zinc-800 border border-amber-500/50 shadow-2xl shadow-amber-900/20 p-4 transition-all duration-500 ${
           bubbleOpen
-            ? 'opacity-100 translate-y-0 scale-100'
+            ? 'opacity-100 translate-y-0 scale-100 pointer-events-auto'
             : 'opacity-0 translate-y-3 scale-95 pointer-events-none'
         }`}
       >
@@ -91,7 +91,7 @@ export default function Mascot() {
         onClick={handleClick}
         title={peeked ? 'Zurückkommen' : 'Aufbereitung anfragen'}
         aria-label="Preisrechner öffnen"
-        className="cursor-pointer focus:outline-none select-none"
+        className="cursor-pointer focus:outline-none select-none pointer-events-auto"
         style={{
           transform,
           transformOrigin: 'bottom right',
