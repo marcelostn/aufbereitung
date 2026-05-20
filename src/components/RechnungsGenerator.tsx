@@ -75,8 +75,11 @@ function upsertArchiv(eintrag: ArchivEintrag) {
 export interface Preset {
   label: string;
   preis: number;
-  /** Wenn gesetzt: Prozentwert (z.B. 0.15 = 15 %), wird automatisch auf den Paket-Preis angewendet. */
+  /** Wenn gesetzt: Prozentwert (z.B. 0.15 = +15 %, -0.10 = -10 %). */
   prozent?: number;
+  /** true → Prozent gilt auf die Summe aller anderen Positionen (für Rabatte auf alles).
+   *  false/undefined → Prozent gilt auf das Paket (erste Position mit positivem Preis). */
+  vonGesamt?: boolean;
 }
 
 export interface FirmaInfo {
@@ -191,10 +194,19 @@ export default function RechnungsGenerator({ firma, presets }: Props) {
     updatePos(i, 'beschreibung', p.label);
 
     if (p.prozent) {
-      // Prozent-Aufpreis / Rabatt: aus erster anderer Position mit positivem Preis berechnen
-      const basisBetrag = positionen
-        .map((pos, idx) => idx !== i ? parseB(pos.brutto) : 0)
-        .find((b) => b > 0) ?? 0;
+      let basisBetrag = 0;
+      if (p.vonGesamt) {
+        // Rabatt auf alles: Summe ALLER anderen positiven Positionen
+        basisBetrag = positionen.reduce(
+          (s, pos, idx) => (idx !== i ? s + Math.max(0, parseB(pos.brutto)) : s),
+          0
+        );
+      } else {
+        // Aufpreis auf Paket: erste andere Position mit positivem Preis
+        basisBetrag = positionen
+          .map((pos, idx) => (idx !== i ? parseB(pos.brutto) : 0))
+          .find((b) => b > 0) ?? 0;
+      }
       const betrag = basisBetrag * p.prozent;
       updatePos(i, 'brutto', betrag !== 0 ? betrag.toFixed(2).replace('.', ',') : '');
     } else {
