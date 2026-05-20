@@ -1,0 +1,70 @@
+---
+// Cookie-Banner: erscheint nur wenn noch keine Wahl getroffen wurde.
+// Wahl wird in localStorage unter "cookie_consent" gespeichert:
+//   "accepted" → alle (für künftige Analytics/Marketing-Cookies)
+//   "essential" → nur technisch nötige (Session-Cookies für Admin-Login etc.)
+// Globales Event "cookie-consent-change" wird gefeuert, damit Analytics-Skripte später lauschen können.
+---
+
+<div
+  id="cookie-banner"
+  class="fixed bottom-0 left-0 right-0 z-50 hidden p-4 sm:p-6"
+  aria-label="Cookie-Hinweis"
+  role="dialog"
+  aria-live="polite"
+>
+  <div class="max-w-4xl mx-auto bg-zinc-900/95 backdrop-blur-md border border-zinc-700 rounded-2xl shadow-2xl p-5 sm:p-6">
+    <div class="flex flex-col sm:flex-row gap-4 sm:gap-6 sm:items-center">
+      <div class="flex-1 min-w-0">
+        <h2 class="text-zinc-100 font-bold text-base sm:text-lg mb-1">Wir respektieren Ihre Privatsphäre</h2>
+        <p class="text-zinc-400 text-sm leading-relaxed">
+          Wir verwenden nur technisch notwendige Cookies (z.&nbsp;B. für das Admin-Login).
+          Mit Klick auf <strong class="text-zinc-200">„Akzeptieren"</strong> stimmen Sie zusätzlich
+          anonymen Statistik-Cookies zu, damit wir die Seite verbessern können.
+          Mehr in der <a href="/datenschutz" class="text-amber-400 hover:text-amber-300 underline transition-colors">Datenschutzerklärung</a>.
+        </p>
+      </div>
+      <div class="flex flex-col-reverse sm:flex-row gap-2.5 sm:shrink-0">
+        <button
+          type="button"
+          data-cookie-action="essential"
+          class="border border-zinc-700 hover:border-zinc-500 hover:bg-zinc-800/60 text-zinc-200 transition-colors duration-200 px-5 py-2.5 rounded-xl font-semibold text-sm whitespace-nowrap cursor-pointer min-h-[44px]"
+        >
+          Nur notwendige
+        </button>
+        <button
+          type="button"
+          data-cookie-action="accepted"
+          class="btn-gold px-5 py-2.5 rounded-xl font-bold text-sm whitespace-nowrap cursor-pointer min-h-[44px] flex items-center justify-center"
+        >
+          Akzeptieren
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  (function () {
+    const STORAGE_KEY = 'cookie_consent';
+    const banner = document.getElementById('cookie-banner');
+    if (!banner) return;
+
+    const existing = (() => {
+      try { return localStorage.getItem(STORAGE_KEY); } catch { return null; }
+    })();
+
+    if (!existing) {
+      banner.classList.remove('hidden');
+    }
+
+    banner.querySelectorAll<HTMLButtonElement>('button[data-cookie-action]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const value = btn.dataset.cookieAction || 'essential';
+        try { localStorage.setItem(STORAGE_KEY, value); } catch { /* ignore */ }
+        banner.classList.add('hidden');
+        document.dispatchEvent(new CustomEvent('cookie-consent-change', { detail: { value } }));
+      });
+    });
+  })();
+</script>

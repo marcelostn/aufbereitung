@@ -1,0 +1,214 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { FIRMA } from '../../data/firma';
+import { PKW_PAKETE, type PaketTyp } from '../../data/preise';
+import { PAKET_DETAILS } from '../../data/paket-details';
+
+export const prerender = true;
+
+export async function getStaticPaths() {
+  return (Object.entries(PAKET_DETAILS) as [PaketTyp, typeof PAKET_DETAILS[PaketTyp]][]).map(
+    ([key, detail]) => ({
+      params: { slug: detail.slug },
+      props: { paketKey: key },
+    })
+  );
+}
+
+interface Props {
+  paketKey: PaketTyp;
+}
+
+const { paketKey } = Astro.props;
+const paket = PKW_PAKETE[paketKey];
+const detail = PAKET_DETAILS[paketKey];
+
+const eur = (n: number) =>
+  n.toLocaleString('de-DE', { style: 'currency', currency: 'EUR' });
+
+// "Andere Pakete" – alle außer dem aktuellen
+const andere = (Object.entries(PAKET_DETAILS) as [PaketTyp, typeof detail][])
+  .filter(([k]) => k !== paketKey)
+  .slice(0, 3);
+
+// Schema.org Service – einzelner Service mit Preis
+const serviceSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'Service',
+  serviceType: paket.name,
+  name: `${paket.name} – ${FIRMA.name}`,
+  description: detail.kurzbeschreibung,
+  provider: {
+    '@type': 'LocalBusiness',
+    name: FIRMA.name,
+    address: {
+      '@type': 'PostalAddress',
+      addressLocality: FIRMA.ort,
+      postalCode: FIRMA.plz,
+      addressCountry: 'DE',
+    },
+    telephone: FIRMA.telefon,
+  },
+  areaServed: FIRMA.einzugsgebiet,
+  offers: {
+    '@type': 'Offer',
+    price: paket.bruttoPreis,
+    priceCurrency: 'EUR',
+    availability: 'https://schema.org/InStock',
+  },
+};
+
+// Preisrechner mit Vorauswahl
+const rechnerLink = `/preisrechner?paket=${paketKey}`;
+---
+
+<BaseLayout
+  title={paket.name}
+  description={detail.kurzbeschreibung}
+>
+  <script type="application/ld+json" set:html={JSON.stringify(serviceSchema)} />
+
+  <article class="bg-zinc-950">
+
+    <!-- Hero -->
+    <section class="relative overflow-hidden">
+      <div class="absolute inset-0 pointer-events-none" style="background: radial-gradient(ellipse 60% 50% at 50% 0%, rgba(217,119,6,0.07), transparent 70%), #09090b;"></div>
+      <div class="relative max-w-4xl mx-auto px-4 sm:px-6 pt-16 pb-12 sm:pt-24 sm:pb-16">
+
+        <nav class="text-sm text-zinc-500 mb-6 flex items-center gap-2 flex-wrap">
+          <a href="/" class="hover:text-amber-400 transition-colors">Start</a>
+          <span class="text-zinc-700">/</span>
+          <a href="/leistungen" class="hover:text-amber-400 transition-colors">Leistungen</a>
+          <span class="text-zinc-700">/</span>
+          <span class="text-zinc-300">{paket.name}</span>
+        </nav>
+
+        <p class="text-amber-400/80 text-xs font-semibold tracking-[0.22em] uppercase mb-3">
+          Paket im Detail
+        </p>
+        <h1 class="text-4xl sm:text-5xl font-black tracking-tighter text-zinc-100 mb-4">
+          {paket.name}
+        </h1>
+        <p class="text-zinc-400 text-lg leading-relaxed max-w-2xl">
+          {detail.kurzbeschreibung}
+        </p>
+
+        <div class="mt-8 flex flex-wrap items-baseline gap-x-6 gap-y-2">
+          <div>
+            <p class="text-zinc-500 text-xs uppercase tracking-wider mb-1">Preis</p>
+            <p class="text-3xl font-black text-amber-400 tabular-nums">{eur(paket.bruttoPreis)}</p>
+            <p class="text-zinc-600 text-xs">inkl. 19&nbsp;% MwSt.</p>
+          </div>
+          <div>
+            <p class="text-zinc-500 text-xs uppercase tracking-wider mb-1">Dauer (ca.)</p>
+            <p class="text-2xl font-bold text-zinc-100">{paket.dauer}</p>
+          </div>
+          <div>
+            <p class="text-zinc-500 text-xs uppercase tracking-wider mb-1">Wo</p>
+            <p class="text-2xl font-bold text-zinc-100">Bei Ihnen vor Ort</p>
+          </div>
+        </div>
+
+        <div class="mt-8 flex flex-col sm:flex-row gap-3">
+          <a href={rechnerLink} class="btn-gold px-7 py-3.5 rounded-xl font-bold text-lg min-h-[52px] flex items-center justify-center">
+            Jetzt buchen & Termin wählen
+          </a>
+          <a href="/kontakt" class="border border-zinc-700 hover:border-amber-500/50 hover:bg-amber-500/5 text-zinc-200 transition-all duration-200 px-7 py-3.5 rounded-xl font-bold text-lg min-h-[52px] flex items-center justify-center">
+            Frage stellen
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- Was ist enthalten -->
+    <section class="bg-zinc-950 py-16 sm:py-20">
+      <div class="max-w-4xl mx-auto px-4 sm:px-6">
+        <h2 class="text-2xl sm:text-3xl font-black tracking-tighter text-zinc-100 mb-8">
+          Was ist enthalten
+        </h2>
+        <ul class="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4">
+          {detail.enthalten.map((punkt) => (
+            <li class="flex items-start gap-3">
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-amber-400 shrink-0 mt-0.5" viewBox="0 0 24 24" fill="none" stroke-width="2.4" stroke="currentColor" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+              </svg>
+              <span class="text-zinc-300 leading-relaxed">{punkt}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </section>
+
+    <!-- Für wen geeignet -->
+    <section class="bg-zinc-950 py-16 sm:py-20 border-t border-zinc-900">
+      <div class="max-w-4xl mx-auto px-4 sm:px-6">
+        <h2 class="text-2xl sm:text-3xl font-black tracking-tighter text-zinc-100 mb-8">
+          Für wen passt das?
+        </h2>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-6">
+          {detail.geeignet_fuer.map((eintrag, i) => (
+            <div class="bg-zinc-900/60 border border-zinc-800 rounded-xl p-5 backdrop-blur-sm">
+              <span class="text-amber-400/60 font-mono text-xs tabular-nums">0{i + 1}</span>
+              <p class="text-zinc-300 leading-relaxed mt-2">{eintrag}</p>
+            </div>
+          ))}
+        </div>
+
+        {detail.hinweise && (
+          <div class="mt-8 bg-amber-500/5 border border-amber-500/20 rounded-xl p-5">
+            {detail.hinweise.map((h) => (
+              <p class="text-amber-300/90 text-sm leading-relaxed flex items-start gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-amber-400 shrink-0 mt-0.5" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke="currentColor" aria-hidden="true">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
+                </svg>
+                <span>{h}</span>
+              </p>
+            ))}
+          </div>
+        )}
+      </div>
+    </section>
+
+    <!-- CTA -->
+    <section class="bg-zinc-950 py-20 sm:py-24 border-t border-zinc-900" style="background: radial-gradient(ellipse 80% 50% at 50% 0%, rgba(217,119,6,0.06) 0%, transparent 70%), #09090b;">
+      <div class="max-w-2xl mx-auto px-4 sm:px-6 text-center">
+        <h2 class="text-3xl sm:text-4xl font-black tracking-tighter text-zinc-100 mb-3">
+          Bereit für {paket.name}?
+        </h2>
+        <p class="text-zinc-400 mb-8 leading-relaxed">
+          Wählen Sie direkt einen Termin – Festpreis, kostenlose Anfahrt bis 10&nbsp;km um {FIRMA.ort}.
+        </p>
+        <div class="flex flex-col sm:flex-row gap-3 justify-center">
+          <a href={rechnerLink} class="btn-gold px-8 py-3.5 rounded-xl font-bold text-lg min-h-[52px] flex items-center justify-center">
+            Termin wählen
+          </a>
+          <a href="/kontakt" class="border border-zinc-700 hover:border-amber-500/50 hover:bg-amber-500/5 text-zinc-200 transition-all duration-200 px-8 py-3.5 rounded-xl font-bold text-lg min-h-[52px] flex items-center justify-center">
+            Erstmal fragen
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- Andere Pakete -->
+    <section class="bg-zinc-950 py-16 border-t border-zinc-900">
+      <div class="max-w-4xl mx-auto px-4 sm:px-6">
+        <h2 class="text-xl font-bold text-zinc-100 mb-6">Andere Pakete</h2>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          {andere.map(([k, d]) => (
+            <a href={`/leistungen/${d.slug}`} class="group block bg-zinc-900/50 hover:bg-zinc-900 border border-zinc-800 hover:border-amber-500/40 rounded-xl p-5 transition-all duration-200">
+              <p class="text-zinc-100 font-bold group-hover:text-amber-400 transition-colors">{PKW_PAKETE[k].name}</p>
+              <p class="text-amber-400 text-sm font-bold mt-1 tabular-nums">{eur(PKW_PAKETE[k].bruttoPreis)}</p>
+              <p class="text-zinc-500 text-xs mt-1">{PKW_PAKETE[k].dauer}</p>
+            </a>
+          ))}
+        </div>
+        <p class="text-zinc-600 text-sm mt-6 text-center">
+          <a href="/leistungen" class="text-amber-400 hover:text-amber-300 font-semibold transition-colors">
+            Alle Leistungen und Aufpreise →
+          </a>
+        </p>
+      </div>
+    </section>
+
+  </article>
+</BaseLayout>

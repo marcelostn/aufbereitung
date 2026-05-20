@@ -440,6 +440,18 @@ function EntfernungSchritt({ entfernungKm, dispatch }: { entfernungKm: number; d
 export default function PriceCalculator({ calLink, calLinks = {}, telefon }: Props) {
   const [s, dispatch] = useReducer(reducer, init);
 
+  // Vorauswahl aus URL-Parameter (z.B. von Service-Detailseite: /preisrechner?paket=komplett_basic)
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    const paket = params.get('paket') as PaketTyp | null;
+    if (paket && paket in PKW_PAKETE) {
+      dispatch({ type: 'SET_PKW_PAKET', value: paket });
+      dispatch({ type: 'WEITER' }); // 1 -> 2
+      dispatch({ type: 'WEITER' }); // 2 -> 3 (Aufpreise)
+    }
+  }, []);
+
   const paketKey = s.fahrzeugGruppe === 'pkw' ? s.pkwPaket : s.lkwPaket;
   const activeCalLink = calLinks[paketKey] || calLink;
 
