@@ -26,12 +26,21 @@ const detail = PAKET_DETAILS[paketKey];
 const eur = (n: number) =>
   n.toLocaleString('de-DE', { style: 'currency', currency: 'EUR' });
 
-// "Andere Pakete" – alle außer dem aktuellen
 const andere = (Object.entries(PAKET_DETAILS) as [PaketTyp, typeof detail][])
   .filter(([k]) => k !== paketKey)
   .slice(0, 3);
 
-// Schema.org Service – einzelner Service mit Preis
+// Voraussetzungs-Badges
+const labels = {
+  wasser: { wir: 'Wir bringen alles mit', optional: 'Anschluss willkommen, nicht nötig', noetig: 'Anschluss erforderlich' },
+  strom:  { wir: 'Wir bringen alles mit', optional: 'Steckdose willkommen, nicht nötig', noetig: 'Steckdose erforderlich' },
+};
+const farben = {
+  wir: 'text-green-400 bg-green-500/10 border-green-500/30',
+  optional: 'text-zinc-300 bg-zinc-800/60 border-zinc-700',
+  noetig: 'text-amber-300 bg-amber-500/10 border-amber-500/30',
+};
+
 const serviceSchema = {
   '@context': 'https://schema.org',
   '@type': 'Service',
@@ -58,15 +67,23 @@ const serviceSchema = {
   },
 };
 
-// Preisrechner mit Vorauswahl
+// FAQ Schema (gut für Google)
+const faqSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'FAQPage',
+  mainEntity: detail.faqs.map((f) => ({
+    '@type': 'Question',
+    name: f.frage,
+    acceptedAnswer: { '@type': 'Answer', text: f.antwort },
+  })),
+};
+
 const rechnerLink = `/preisrechner?paket=${paketKey}`;
 ---
 
-<BaseLayout
-  title={paket.name}
-  description={detail.kurzbeschreibung}
->
+<BaseLayout title={paket.name} description={detail.kurzbeschreibung}>
   <script type="application/ld+json" set:html={JSON.stringify(serviceSchema)} />
+  <script type="application/ld+json" set:html={JSON.stringify(faqSchema)} />
 
   <article class="bg-zinc-950">
 
@@ -83,15 +100,9 @@ const rechnerLink = `/preisrechner?paket=${paketKey}`;
           <span class="text-zinc-300">{paket.name}</span>
         </nav>
 
-        <p class="text-amber-400/80 text-xs font-semibold tracking-[0.22em] uppercase mb-3">
-          Paket im Detail
-        </p>
-        <h1 class="text-4xl sm:text-5xl font-black tracking-tighter text-zinc-100 mb-4">
-          {paket.name}
-        </h1>
-        <p class="text-zinc-400 text-lg leading-relaxed max-w-2xl">
-          {detail.kurzbeschreibung}
-        </p>
+        <p class="text-amber-400/80 text-xs font-semibold tracking-[0.22em] uppercase mb-3">Paket im Detail</p>
+        <h1 class="text-4xl sm:text-5xl font-black tracking-tighter text-zinc-100 mb-4">{paket.name}</h1>
+        <p class="text-zinc-400 text-lg leading-relaxed max-w-2xl">{detail.kurzbeschreibung}</p>
 
         <div class="mt-8 flex flex-wrap items-baseline gap-x-6 gap-y-2">
           <div>
@@ -123,9 +134,7 @@ const rechnerLink = `/preisrechner?paket=${paketKey}`;
     <!-- Was ist enthalten -->
     <section class="bg-zinc-950 py-16 sm:py-20">
       <div class="max-w-4xl mx-auto px-4 sm:px-6">
-        <h2 class="text-2xl sm:text-3xl font-black tracking-tighter text-zinc-100 mb-8">
-          Was ist enthalten
-        </h2>
+        <h2 class="text-2xl sm:text-3xl font-black tracking-tighter text-zinc-100 mb-8">Was ist enthalten</h2>
         <ul class="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4">
           {detail.enthalten.map((punkt) => (
             <li class="flex items-start gap-3">
@@ -139,12 +148,114 @@ const rechnerLink = `/preisrechner?paket=${paketKey}`;
       </div>
     </section>
 
+    <!-- Produkte -->
+    <section class="bg-zinc-950 py-16 sm:py-20 border-t border-zinc-900">
+      <div class="max-w-4xl mx-auto px-4 sm:px-6">
+        <p class="text-amber-400/80 text-xs font-semibold tracking-[0.22em] uppercase mb-3">Welche Produkte wir verwenden</p>
+        <h2 class="text-2xl sm:text-3xl font-black tracking-tighter text-zinc-100 mb-4">Profi-Chemie von Koch Chemie</h2>
+        <p class="text-zinc-400 leading-relaxed max-w-2xl mb-8">
+          Wir arbeiten ausschließlich mit Koch Chemie – dieselbe Marke, die zertifizierte Aufbereiter und Premium-Autohäuser verwenden. Keine Discount-Produkte, kein Etikett-Schwindel.
+        </p>
+        <ul class="space-y-3">
+          {detail.produkte.map((p) => (
+            <li class="bg-zinc-900/50 border border-zinc-800 rounded-xl p-4 sm:p-5">
+              <p class="text-zinc-100 font-bold">{p.name}</p>
+              <p class="text-zinc-400 text-sm mt-1 leading-relaxed">{p.wofuer}</p>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </section>
+
+    <!-- Geräte -->
+    <section class="bg-zinc-950 py-16 sm:py-20 border-t border-zinc-900">
+      <div class="max-w-4xl mx-auto px-4 sm:px-6">
+        <p class="text-amber-400/80 text-xs font-semibold tracking-[0.22em] uppercase mb-3">Mit welchen Geräten wir arbeiten</p>
+        <h2 class="text-2xl sm:text-3xl font-black tracking-tighter text-zinc-100 mb-8">Profi-Equipment, das wir mitbringen</h2>
+        <ul class="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3">
+          {detail.geraete.map((g) => (
+            <li class="flex items-start gap-3">
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-zinc-500 shrink-0 mt-0.5" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke="currentColor" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M11.42 15.17 17.25 21A2.652 2.652 0 0 0 21 17.25l-5.877-5.877M11.42 15.17l2.496-3.03c.317-.384.74-.626 1.208-.766M11.42 15.17l-4.655 5.653a2.548 2.548 0 1 1-3.586-3.586l6.837-5.63m5.108-.233c.55-.164 1.163-.188 1.743-.14a4.5 4.5 0 0 0 4.486-6.336l-3.276 3.277a3.004 3.004 0 0 1-2.25-2.25l3.276-3.276a4.5 4.5 0 0 0-6.336 4.486c.091 1.076-.071 2.264-.904 2.95l-.102.085m-1.745 1.437L5.909 7.5H4.5L2.25 3.75l1.5-1.5L7.5 4.5v1.409l4.26 4.26m-1.745 1.437 1.745-1.437m6.615 8.206L15.75 15.75M4.867 19.125h.008v.008h-.008v-.008Z" />
+              </svg>
+              <span class="text-zinc-300 leading-relaxed">{g}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </section>
+
+    <!-- Ablauf -->
+    <section class="bg-zinc-950 py-16 sm:py-20 border-t border-zinc-900">
+      <div class="max-w-4xl mx-auto px-4 sm:px-6">
+        <p class="text-amber-400/80 text-xs font-semibold tracking-[0.22em] uppercase mb-3">So gehen wir vor</p>
+        <h2 class="text-2xl sm:text-3xl font-black tracking-tighter text-zinc-100 mb-8">Reihenfolge & Arbeitsweise</h2>
+        <ol class="space-y-5">
+          {detail.ablauf.map((s, i) => (
+            <li class="flex gap-4 sm:gap-5">
+              <span class="text-amber-400/70 font-mono text-sm tabular-nums w-8 shrink-0 mt-0.5">
+                {String(i + 1).padStart(2, '0')}
+              </span>
+              <div class="flex-1 pb-5 border-b border-zinc-800 last:border-0">
+                <h3 class="text-zinc-100 font-bold text-base sm:text-lg mb-1.5">{s.titel}</h3>
+                <p class="text-zinc-400 leading-relaxed text-sm sm:text-base">{s.beschreibung}</p>
+              </div>
+            </li>
+          ))}
+        </ol>
+      </div>
+    </section>
+
+    <!-- Voraussetzungen / Was brauchen wir vor Ort -->
+    <section class="bg-zinc-950 py-16 sm:py-20 border-t border-zinc-900">
+      <div class="max-w-4xl mx-auto px-4 sm:px-6">
+        <p class="text-amber-400/80 text-xs font-semibold tracking-[0.22em] uppercase mb-3">Was wir vor Ort brauchen</p>
+        <h2 class="text-2xl sm:text-3xl font-black tracking-tighter text-zinc-100 mb-8">Wasser, Strom, Stellplatz</h2>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+          <div class={`rounded-xl border p-5 ${farben[detail.voraussetzungen.wasser]}`}>
+            <div class="flex items-center gap-2 mb-2">
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke="currentColor" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 2.25c-2.429 5.927-7 9.367-7 13.5a7 7 0 0 0 14 0c0-4.133-4.571-7.573-7-13.5Z" />
+              </svg>
+              <p class="font-bold text-sm uppercase tracking-wider">Wasser</p>
+            </div>
+            <p class="text-sm">{labels.wasser[detail.voraussetzungen.wasser]}</p>
+          </div>
+          <div class={`rounded-xl border p-5 ${farben[detail.voraussetzungen.strom]}`}>
+            <div class="flex items-center gap-2 mb-2">
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke="currentColor" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" d="m3.75 13.5 10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75Z" />
+              </svg>
+              <p class="font-bold text-sm uppercase tracking-wider">Strom</p>
+            </div>
+            <p class="text-sm">{labels.strom[detail.voraussetzungen.strom]}</p>
+          </div>
+        </div>
+
+        <div class="bg-zinc-900/50 border border-zinc-800 rounded-xl p-5">
+          <div class="flex items-start gap-3">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-zinc-500 shrink-0 mt-0.5" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke="currentColor" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+              <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z" />
+            </svg>
+            <div>
+              <p class="text-zinc-200 font-semibold mb-1">Stellplatz</p>
+              <p class="text-zinc-400 text-sm leading-relaxed">{detail.voraussetzungen.platz}</p>
+            </div>
+          </div>
+        </div>
+
+        {detail.voraussetzungen.hinweis && (
+          <p class="text-zinc-500 text-sm mt-4 leading-relaxed italic">{detail.voraussetzungen.hinweis}</p>
+        )}
+      </div>
+    </section>
+
     <!-- Für wen geeignet -->
     <section class="bg-zinc-950 py-16 sm:py-20 border-t border-zinc-900">
       <div class="max-w-4xl mx-auto px-4 sm:px-6">
-        <h2 class="text-2xl sm:text-3xl font-black tracking-tighter text-zinc-100 mb-8">
-          Für wen passt das?
-        </h2>
+        <h2 class="text-2xl sm:text-3xl font-black tracking-tighter text-zinc-100 mb-8">Für wen passt das?</h2>
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-6">
           {detail.geeignet_fuer.map((eintrag, i) => (
             <div class="bg-zinc-900/60 border border-zinc-800 rounded-xl p-5 backdrop-blur-sm">
@@ -169,22 +280,41 @@ const rechnerLink = `/preisrechner?paket=${paketKey}`;
       </div>
     </section>
 
+    <!-- Häufige Fragen zum Paket -->
+    <section class="bg-zinc-950 py-16 sm:py-20 border-t border-zinc-900">
+      <div class="max-w-3xl mx-auto px-4 sm:px-6">
+        <p class="text-amber-400/80 text-xs font-semibold tracking-[0.22em] uppercase mb-3">Häufige Fragen</p>
+        <h2 class="text-2xl sm:text-3xl font-black tracking-tighter text-zinc-100 mb-8">Gut zu wissen, vorab.</h2>
+        <div class="divide-y divide-zinc-800 border-y border-zinc-800">
+          {detail.faqs.map((f) => (
+            <details class="faq group">
+              <summary class="flex items-center justify-between gap-4 py-5 cursor-pointer list-none">
+                <span class="text-zinc-100 font-bold text-base pr-2">{f.frage}</span>
+                <svg xmlns="http://www.w3.org/2000/svg" class="faq-chevron w-5 h-5 shrink-0 text-zinc-600 transition-transform duration-200" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" aria-hidden="true">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
+                </svg>
+              </summary>
+              <p class="text-zinc-400 text-sm sm:text-base leading-relaxed pb-5 -mt-1 pr-8">{f.antwort}</p>
+            </details>
+          ))}
+        </div>
+        <p class="text-zinc-600 text-sm mt-8 text-center">
+          Noch eine Frage offen?
+          <a href="/kontakt" class="text-amber-400 hover:text-amber-300 transition-colors font-semibold">Schreiben Sie uns →</a>
+        </p>
+      </div>
+    </section>
+
     <!-- CTA -->
     <section class="bg-zinc-950 py-20 sm:py-24 border-t border-zinc-900" style="background: radial-gradient(ellipse 80% 50% at 50% 0%, rgba(217,119,6,0.06) 0%, transparent 70%), #09090b;">
       <div class="max-w-2xl mx-auto px-4 sm:px-6 text-center">
-        <h2 class="text-3xl sm:text-4xl font-black tracking-tighter text-zinc-100 mb-3">
-          Bereit für {paket.name}?
-        </h2>
+        <h2 class="text-3xl sm:text-4xl font-black tracking-tighter text-zinc-100 mb-3">Bereit für {paket.name}?</h2>
         <p class="text-zinc-400 mb-8 leading-relaxed">
           Wählen Sie direkt einen Termin – Festpreis, kostenlose Anfahrt bis 10&nbsp;km um {FIRMA.ort}.
         </p>
         <div class="flex flex-col sm:flex-row gap-3 justify-center">
-          <a href={rechnerLink} class="btn-gold px-8 py-3.5 rounded-xl font-bold text-lg min-h-[52px] flex items-center justify-center">
-            Termin wählen
-          </a>
-          <a href="/kontakt" class="border border-zinc-700 hover:border-amber-500/50 hover:bg-amber-500/5 text-zinc-200 transition-all duration-200 px-8 py-3.5 rounded-xl font-bold text-lg min-h-[52px] flex items-center justify-center">
-            Erstmal fragen
-          </a>
+          <a href={rechnerLink} class="btn-gold px-8 py-3.5 rounded-xl font-bold text-lg min-h-[52px] flex items-center justify-center">Termin wählen</a>
+          <a href="/kontakt" class="border border-zinc-700 hover:border-amber-500/50 hover:bg-amber-500/5 text-zinc-200 transition-all duration-200 px-8 py-3.5 rounded-xl font-bold text-lg min-h-[52px] flex items-center justify-center">Erstmal fragen</a>
         </div>
       </div>
     </section>
@@ -211,4 +341,11 @@ const rechnerLink = `/preisrechner?paket=${paketKey}`;
     </section>
 
   </article>
+
+  <style>
+    .faq summary::-webkit-details-marker { display: none; }
+    .faq summary::marker { content: ''; }
+    .faq[open] .faq-chevron { transform: rotate(180deg); color: #fbbf24; }
+    .faq summary:hover span { color: #fbbf24; }
+  </style>
 </BaseLayout>
