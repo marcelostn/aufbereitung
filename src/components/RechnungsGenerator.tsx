@@ -125,10 +125,39 @@ export default function RechnungsGenerator({ firma, presets }: Props) {
   const [archiv, setArchiv] = useState<ArchivEintrag[]>([]);
   const [archivSuche, setArchivSuche] = useState('');
 
+  const [prefillBanner, setPrefillBanner] = useState(false);
+
   useEffect(() => {
     setRNr(nextNummer());
     const a = loadArchiv();
     setArchiv(a);
+
+    // URL-Parameter aus Terminanfrage auslesen und Felder vorbefüllen
+    const params = new URLSearchParams(window.location.search);
+    if (params.has('vorname') || params.has('nachname') || params.has('paket')) {
+      const vorname = params.get('vorname') ?? '';
+      const nachname = params.get('nachname') ?? '';
+      const strasse = params.get('strasse') ?? '';
+      const plz = params.get('plz') ?? '';
+      const ort = params.get('ort') ?? '';
+      const paket = params.get('paket') ?? '';
+      const preis = params.get('preis') ?? '';
+
+      setKName(`${vorname} ${nachname}`.trim());
+      setKAdresse([strasse, `${plz} ${ort}`.trim()].filter(Boolean).join('\n'));
+      setKEmail(params.get('kEmail') ?? '');
+      setFahrzeug(params.get('fahrzeug') ?? '');
+      if (paket) {
+        const brutto = preis ? parseFloat(preis).toFixed(2).replace('.', ',') : '';
+        setPositionen([{ beschreibung: paket, brutto }]);
+      }
+      setView('form');
+      setPrefillBanner(true);
+      // URL aufräumen, damit beim Reload nicht erneut prefilled wird
+      window.history.replaceState({}, '', window.location.pathname);
+      return;
+    }
+
     if (a.length > 0) setView('list');
   }, []);
 
@@ -400,6 +429,28 @@ export default function RechnungsGenerator({ firma, presets }: Props) {
             Archiv ({archiv.length})
           </button>
         </div>
+
+        {/* ── Prefill-Banner: Daten kamen aus einer Terminanfrage ─────────── */}
+        {prefillBanner && (
+          <div className="bg-green-500/10 border border-green-500/40 rounded-xl p-4 mb-5 flex items-start gap-3">
+            <svg className="w-5 h-5 text-green-400 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+            </svg>
+            <div className="flex-1">
+              <p className="text-green-200 font-bold text-sm">Daten aus Terminanfrage übernommen</p>
+              <p className="text-green-300/80 text-xs mt-1">
+                Kundendaten, Leistung und Preis wurden automatisch aus der Anfrage-E-Mail eingefügt. Bitte vor dem Erstellen kurz kontrollieren.
+              </p>
+            </div>
+            <button
+              onClick={() => setPrefillBanner(false)}
+              className="text-green-400/60 hover:text-green-300 text-lg leading-none"
+              aria-label="Schließen"
+            >
+              ✕
+            </button>
+          </div>
+        )}
 
         {/* ── Validierungs-Panel: Fehlende Firmendaten (§14 UStG) ─────────── */}
         {fehlendeFirmenDaten.length > 0 && (

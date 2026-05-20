@@ -486,6 +486,22 @@ export default function PriceCalculator({ calLink, calLinks = {}, telefon, email
     if (s.kindersitze > 0) aufpreisTexte.push(`${s.kindersitze} Kindersitz${s.kindersitze > 1 ? 'e' : ''}`);
     if (s.nikotin) aufpreisTexte.push('Nikotingeruch');
 
+    // Prefill-Link für 1-Klick-Rechnung im Admin
+    const origin = typeof window !== 'undefined' ? window.location.origin : '';
+    const prefillParams = new URLSearchParams({
+      vorname: kunde.vorname,
+      nachname: kunde.nachname,
+      strasse: kunde.strasse,
+      plz: kunde.plz,
+      ort: kunde.ort,
+      kEmail: kunde.email,
+      kTelefon: kunde.telefon,
+      fahrzeug: kunde.kennzeichen,
+      paket: paketName,
+      preis: s.ergebnis.gesamt.toFixed(2),
+    });
+    const rechnungUrl = `${origin}/admin/rechnung?${prefillParams.toString()}`;
+
     const zeilen = [
       `Neue Terminanfrage Autoaufbereitung`,
       ``,
@@ -502,6 +518,9 @@ export default function PriceCalculator({ calLink, calLinks = {}, telefon, email
       aufpreisTexte.length ? `Aufpreise: ${aufpreisTexte.join(', ')}` : '',
       s.reinigungsort === 'vorort' && s.entfernungKm > 0 ? `Entfernung: ${s.entfernungKm} km` : '',
       `Preis: ${eur(s.ergebnis.gesamt)} (inkl. MwSt.)`,
+      ``,
+      `── Rechnung erstellen ──`,
+      `Direkt-Link (Login nötig): ${rechnungUrl}`,
     ].filter(Boolean).join('\n');
 
     // Backup in localStorage
