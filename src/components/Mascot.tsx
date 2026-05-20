@@ -9,7 +9,6 @@ export default function Mascot() {
   const [charVisible, setCharVisible] = useState(false);
   const [bubbleOpen, setBubbleOpen] = useState(false);
   const [peeked, setPeeked] = useState(false);
-  const [dismissed, setDismissed] = useState(false);
   const peekTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const schedulePeek = () => {
@@ -33,11 +32,19 @@ export default function Mascot() {
     };
   }, []);
 
-  // Klick auf die Figur → fährt komplett raus (wie beim Eintreten, nur rückwärts)
+  // Klick auf die Figur: peeked ↔ sichtbar umschalten
+  // Wenn voll sichtbar → in Peek-Zustand fahren (nur Kopf bleibt oben)
+  // Wenn schon peeked → zurück nach oben + Bubble wieder zeigen
   const handleClick = () => {
     if (peekTimer.current) clearTimeout(peekTimer.current);
-    setDismissed(true);
-    setBubbleOpen(false);
+    if (peeked) {
+      setPeeked(false);
+      setBubbleOpen(true);
+      schedulePeek();
+    } else {
+      setPeeked(true);
+      setBubbleOpen(false);
+    }
   };
 
   const handleCloseBubble = () => {
@@ -45,9 +52,7 @@ export default function Mascot() {
     schedulePeek();
   };
 
-  const transform = dismissed
-    ? 'translateX(240px) translateY(20px) rotate(8deg)'
-    : !charVisible
+  const transform = !charVisible
     ? 'translateX(210px) translateY(14px) rotate(7deg)'
     : peeked
     ? `translateX(0px) translateY(${PEEK_OFFSET_PX}px) rotate(0deg)`
@@ -92,14 +97,13 @@ export default function Mascot() {
       {/* ── Character ── */}
       <button
         onClick={handleClick}
-        title="Ausblenden"
-        aria-label="Maskottchen ausblenden"
-        className="cursor-pointer focus:outline-none select-none"
+        title={peeked ? 'Wieder anzeigen' : 'Ausblenden'}
+        aria-label={peeked ? 'Maskottchen wieder anzeigen' : 'Maskottchen ausblenden'}
+        className="cursor-pointer focus:outline-none select-none pointer-events-auto"
         style={{
           transform,
           transformOrigin: 'bottom right',
-          opacity: charVisible && !dismissed ? 1 : 0,
-          pointerEvents: dismissed ? 'none' : 'auto',
+          opacity: charVisible ? 1 : 0,
           transition: `transform 0.85s ${EASE}, opacity 0.7s ease-out`,
         }}
       >
