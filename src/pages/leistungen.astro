@@ -47,19 +47,20 @@ const fahrkostenTabelle = [
               <th class="text-left px-4 py-3 font-semibold">Inhalt</th>
               <th class="text-left px-4 py-3 font-semibold">Dauer</th>
               <th class="text-right px-4 py-3 font-semibold">Preis (brutto)</th>
+              <th class="px-2 py-3"></th>
             </tr>
           </thead>
           <tbody>
-            <tr class="border-t border-zinc-800 hover:bg-zinc-800/50 transition-colors">
-              <td class="px-4 py-3">
-                <a href={detailHref('aussen')} class="font-semibold text-zinc-100 hover:text-amber-400 transition-colors inline-flex items-center gap-1.5 group">
-                  {PKW_PAKETE.aussen.name}
-                  <span class="text-zinc-600 group-hover:text-amber-400 transition-colors text-xs">→</span>
-                </a>
+            <tr class="paket-row border-t border-zinc-800 cursor-pointer transition-all duration-150" data-href={detailHref('aussen')}>
+              <td class="px-4 py-4 font-semibold text-zinc-100">{PKW_PAKETE.aussen.name}</td>
+              <td class="px-4 py-4 text-zinc-400">{PKW_PAKETE.aussen.beschreibung}</td>
+              <td class="px-4 py-4 text-zinc-400">{PKW_PAKETE.aussen.dauer}</td>
+              <td class="px-4 py-4 text-right font-bold text-amber-400">{eur(PKW_PAKETE.aussen.bruttoPreis)}</td>
+              <td class="px-3 py-4 text-right">
+                <span class="paket-chevron inline-flex items-center justify-center w-8 h-8 rounded-full border border-zinc-700 text-zinc-500 transition-all">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
+                </span>
               </td>
-              <td class="px-4 py-3 text-zinc-400">{PKW_PAKETE.aussen.beschreibung}</td>
-              <td class="px-4 py-3 text-zinc-400">{PKW_PAKETE.aussen.dauer}</td>
-              <td class="px-4 py-3 text-right font-bold text-amber-400">{eur(PKW_PAKETE.aussen.bruttoPreis)}</td>
             </tr>
           </tbody>
         </table>
@@ -77,20 +78,21 @@ const fahrkostenTabelle = [
               <th class="text-left px-4 py-3 font-semibold">Inhalt</th>
               <th class="text-left px-4 py-3 font-semibold">Dauer</th>
               <th class="text-right px-4 py-3 font-semibold">Preis (brutto)</th>
+              <th class="px-2 py-3"></th>
             </tr>
           </thead>
           <tbody>
             {(['innen_basic', 'innen_premium', 'innen_detail'] as const).map((key, i) => (
-              <tr class={`border-t border-zinc-800 hover:bg-zinc-800/50 transition-colors ${i % 2 === 1 ? 'bg-zinc-900/40' : ''}`}>
-                <td class="px-4 py-3">
-                  <a href={detailHref(key)} class="font-semibold text-zinc-100 hover:text-amber-400 transition-colors inline-flex items-center gap-1.5 group">
-                    {PKW_PAKETE[key].name}
-                    <span class="text-zinc-600 group-hover:text-amber-400 transition-colors text-xs">→</span>
-                  </a>
+              <tr class={`paket-row border-t border-zinc-800 cursor-pointer transition-all duration-150 ${i % 2 === 1 ? 'bg-zinc-900/40' : ''}`} data-href={detailHref(key)}>
+                <td class="px-4 py-4 font-semibold text-zinc-100">{PKW_PAKETE[key].name}</td>
+                <td class="px-4 py-4 text-zinc-400">{PKW_PAKETE[key].beschreibung}</td>
+                <td class="px-4 py-4 text-zinc-400">{PKW_PAKETE[key].dauer}</td>
+                <td class="px-4 py-4 text-right font-bold text-amber-400">{eur(PKW_PAKETE[key].bruttoPreis)}</td>
+                <td class="px-3 py-4 text-right">
+                  <span class="paket-chevron inline-flex items-center justify-center w-8 h-8 rounded-full border border-zinc-700 text-zinc-500 transition-all">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
+                  </span>
                 </td>
-                <td class="px-4 py-3 text-zinc-400">{PKW_PAKETE[key].beschreibung}</td>
-                <td class="px-4 py-3 text-zinc-400">{PKW_PAKETE[key].dauer}</td>
-                <td class="px-4 py-3 text-right font-bold text-amber-400">{eur(PKW_PAKETE[key].bruttoPreis)}</td>
               </tr>
             ))}
           </tbody>
@@ -110,20 +112,21 @@ const fahrkostenTabelle = [
               <th class="text-left px-4 py-3 font-semibold">Inhalt</th>
               <th class="text-left px-4 py-3 font-semibold">Dauer</th>
               <th class="text-right px-4 py-3 font-semibold">Preis (brutto)</th>
+              <th class="px-2 py-3"></th>
             </tr>
           </thead>
           <tbody>
             {(['komplett_basic', 'komplett_premium', 'komplett_detail'] as const).map((key, i) => (
-              <tr class={`border-t border-zinc-800 hover:bg-amber-500/5 transition-colors ${i % 2 === 1 ? 'bg-zinc-900/40' : ''}`}>
-                <td class="px-4 py-3">
-                  <a href={detailHref(key)} class="font-semibold text-zinc-100 hover:text-amber-400 transition-colors inline-flex items-center gap-1.5 group">
-                    {PKW_PAKETE[key].name}
-                    <span class="text-zinc-600 group-hover:text-amber-400 transition-colors text-xs">→</span>
-                  </a>
+              <tr class={`paket-row border-t border-zinc-800 cursor-pointer transition-all duration-150 ${i % 2 === 1 ? 'bg-zinc-900/40' : ''}`} data-href={detailHref(key)}>
+                <td class="px-4 py-4 font-semibold text-zinc-100">{PKW_PAKETE[key].name}</td>
+                <td class="px-4 py-4 text-zinc-400">{PKW_PAKETE[key].beschreibung}</td>
+                <td class="px-4 py-4 text-zinc-400">{PKW_PAKETE[key].dauer}</td>
+                <td class="px-4 py-4 text-right font-bold text-amber-400">{eur(PKW_PAKETE[key].bruttoPreis)}</td>
+                <td class="px-3 py-4 text-right">
+                  <span class="paket-chevron inline-flex items-center justify-center w-8 h-8 rounded-full border border-zinc-700 text-zinc-500 transition-all">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
+                  </span>
                 </td>
-                <td class="px-4 py-3 text-zinc-400">{PKW_PAKETE[key].beschreibung}</td>
-                <td class="px-4 py-3 text-zinc-400">{PKW_PAKETE[key].dauer}</td>
-                <td class="px-4 py-3 text-right font-bold text-amber-400">{eur(PKW_PAKETE[key].bruttoPreis)}</td>
               </tr>
             ))}
           </tbody>
@@ -271,4 +274,39 @@ const fahrkostenTabelle = [
       </div>
     </div>
   </div>
+
+  <style>
+    /* Klickbare Paket-Zeilen – ganze Zeile als Button mit deutlicher Hover-Wirkung */
+    .paket-row:hover {
+      background: rgba(245, 158, 11, 0.08);
+      box-shadow: inset 3px 0 0 0 #f59e0b;
+    }
+    .paket-row:hover .paket-chevron {
+      background: #f59e0b;
+      border-color: #f59e0b;
+      color: #09090b;
+      transform: translateX(2px);
+    }
+    .paket-row:focus-visible {
+      outline: 2px solid #f59e0b;
+      outline-offset: -2px;
+    }
+  </style>
+
+  <script>
+    // Ganze Tabellen-Zeile als Klick-Ziel: data-href → Navigation
+    document.querySelectorAll<HTMLTableRowElement>('tr.paket-row[data-href]').forEach((row) => {
+      const href = row.dataset.href;
+      if (!href) return;
+      row.setAttribute('role', 'link');
+      row.setAttribute('tabindex', '0');
+      row.addEventListener('click', () => { window.location.href = href; });
+      row.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          window.location.href = href;
+        }
+      });
+    });
+  </script>
 </BaseLayout>
