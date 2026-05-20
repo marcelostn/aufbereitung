@@ -9,6 +9,7 @@ export default function Mascot() {
   const [charVisible, setCharVisible] = useState(false);
   const [bubbleOpen, setBubbleOpen] = useState(false);
   const [peeked, setPeeked] = useState(false);
+  const [dismissed, setDismissed] = useState(false);
   const peekTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const schedulePeek = () => {
@@ -32,11 +33,11 @@ export default function Mascot() {
     };
   }, []);
 
+  // Klick auf die Figur → fährt komplett raus (wie beim Eintreten, nur rückwärts)
   const handleClick = () => {
-    const wasPeeked = peeked;
-    setPeeked(false);
-    setBubbleOpen(wasPeeked ? true : (v) => !v);
-    schedulePeek();
+    if (peekTimer.current) clearTimeout(peekTimer.current);
+    setDismissed(true);
+    setBubbleOpen(false);
   };
 
   const handleCloseBubble = () => {
@@ -44,7 +45,9 @@ export default function Mascot() {
     schedulePeek();
   };
 
-  const transform = !charVisible
+  const transform = dismissed
+    ? 'translateX(240px) translateY(20px) rotate(8deg)'
+    : !charVisible
     ? 'translateX(210px) translateY(14px) rotate(7deg)'
     : peeked
     ? `translateX(0px) translateY(${PEEK_OFFSET_PX}px) rotate(0deg)`
@@ -89,13 +92,14 @@ export default function Mascot() {
       {/* ── Character ── */}
       <button
         onClick={handleClick}
-        title={peeked ? 'Zurückkommen' : 'Aufbereitung anfragen'}
-        aria-label="Preisrechner öffnen"
-        className="cursor-pointer focus:outline-none select-none pointer-events-auto"
+        title="Ausblenden"
+        aria-label="Maskottchen ausblenden"
+        className="cursor-pointer focus:outline-none select-none"
         style={{
           transform,
           transformOrigin: 'bottom right',
-          opacity: charVisible ? 1 : 0,
+          opacity: charVisible && !dismissed ? 1 : 0,
+          pointerEvents: dismissed ? 'none' : 'auto',
           transition: `transform 0.85s ${EASE}, opacity 0.7s ease-out`,
         }}
       >
