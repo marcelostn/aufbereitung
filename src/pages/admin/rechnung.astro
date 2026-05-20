@@ -10,14 +10,15 @@ const presets = [
     label: p.name,
     preis: p.bruttoPreis,
   })),
-  { label: 'Aufpreis: Tierhaare leicht', preis: 15 },
-  { label: 'Aufpreis: Tierhaare mittel', preis: 25 },
-  { label: 'Aufpreis: Tierhaare stark', preis: 45 },
-  { label: 'Aufpreis: Kindersitz reinigen', preis: 20 },
-  { label: 'Aufpreis: Nikotingeruch', preis: 40 },
-  { label: 'Aufpreis: SUV', preis: 0 },
-  { label: 'Aufpreis: Van / Bus', preis: 0 },
-  { label: 'Anfahrt', preis: 0 },
+  { label: 'Aufpreis: Tierhaare leicht',         preis: 15 },
+  { label: 'Aufpreis: Tierhaare mittel',         preis: 25 },
+  { label: 'Aufpreis: Tierhaare stark',          preis: 45 },
+  { label: 'Aufpreis: Kindersitz reinigen',      preis: 20 },
+  { label: 'Aufpreis: Nikotingeruch',            preis: 40 },
+  { label: 'Aufpreis: SUV (+15 % auf Paket)',          preis: 0, prozent: 0.15 },
+  { label: 'Aufpreis: Van / Bus (+30 % auf Paket)',    preis: 0, prozent: 0.30 },
+  { label: 'Aufpreis: Lang / 7-Sitzer (+20 % auf Paket)', preis: 0, prozent: 0.20 },
+  { label: 'Anfahrt',                            preis: 0 },
 ];
 
 const firmaInfo = {
