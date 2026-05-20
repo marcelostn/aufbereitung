@@ -4,21 +4,34 @@ import '../../styles/global.css';
 import RechnungsGenerator from '../../components/RechnungsGenerator';
 import { FIRMA } from '../../data/firma';
 import preiseJson from '../../data/preise.json';
+import lkwJson from '../../data/lkw.json';
+
+const pkwPakete = Object.values(preiseJson as Record<string, { name: string; bruttoPreis: number }>).map(p => ({
+  label: `PKW: ${p.name}`,
+  preis: p.bruttoPreis,
+}));
+
+const lkwPakete = (lkwJson.pakete as Array<{ name: string; bruttoPreis: number }>).map(p => ({
+  label: `Nutzfahrzeug: ${p.name}`,
+  preis: p.bruttoPreis,
+}));
 
 const presets = [
-  ...Object.values(preiseJson as Record<string, { name: string; bruttoPreis: number }>).map(p => ({
-    label: p.name,
-    preis: p.bruttoPreis,
-  })),
-  { label: 'Aufpreis: Tierhaare leicht',         preis: 15 },
-  { label: 'Aufpreis: Tierhaare mittel',         preis: 25 },
-  { label: 'Aufpreis: Tierhaare stark',          preis: 45 },
-  { label: 'Aufpreis: Kindersitz reinigen',      preis: 20 },
-  { label: 'Aufpreis: Nikotingeruch',            preis: 40 },
-  { label: 'Aufpreis: SUV (+15 % auf Paket)',          preis: 0, prozent: 0.15 },
-  { label: 'Aufpreis: Van / Bus (+30 % auf Paket)',    preis: 0, prozent: 0.30 },
-  { label: 'Aufpreis: Lang / 7-Sitzer (+20 % auf Paket)', preis: 0, prozent: 0.20 },
-  { label: 'Anfahrt',                            preis: 0 },
+  ...pkwPakete,
+  ...lkwPakete,
+  { label: 'Aufpreis: Tierhaare leicht',                    preis: 15 },
+  { label: 'Aufpreis: Tierhaare mittel',                    preis: 25 },
+  { label: 'Aufpreis: Tierhaare stark',                     preis: 45 },
+  { label: 'Aufpreis: Kindersitz reinigen',                 preis: 20 },
+  { label: 'Aufpreis: Nikotingeruch',                       preis: 40 },
+  { label: 'Aufpreis: SUV (+15 % auf Paket)',               preis: 0, prozent: 0.15 },
+  { label: 'Aufpreis: Van / Bus (+30 % auf Paket)',         preis: 0, prozent: 0.30 },
+  { label: 'Aufpreis: Lang / 7-Sitzer (+20 % auf Paket)',   preis: 0, prozent: 0.20 },
+  { label: 'Aufpreis Nutzfahrzeug: Wochenend-Zuschlag (+20 %)',   preis: 0, prozent: 0.20 },
+  { label: 'Aufpreis Nutzfahrzeug: Express < 48 h (+15 %)', preis: 0, prozent: 0.15 },
+  { label: 'Rabatt Nutzfahrzeug: ab 3 Fahrzeuge (−10 %)',   preis: 0, prozent: -0.10 },
+  { label: 'Anfahrt',                                       preis: 0 },
+  { label: 'Sonstiges (frei eingeben)',                     preis: 0 },
 ];
 
 const firmaInfo = {

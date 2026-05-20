@@ -191,12 +191,12 @@ export default function RechnungsGenerator({ firma, presets }: Props) {
     updatePos(i, 'beschreibung', p.label);
 
     if (p.prozent) {
-      // Prozent-Aufpreis (SUV/Van/Lang): aus erster anderer Position mit Preis > 0 berechnen
+      // Prozent-Aufpreis / Rabatt: aus erster anderer Position mit positivem Preis berechnen
       const basisBetrag = positionen
         .map((pos, idx) => idx !== i ? parseB(pos.brutto) : 0)
         .find((b) => b > 0) ?? 0;
       const betrag = basisBetrag * p.prozent;
-      updatePos(i, 'brutto', betrag > 0 ? betrag.toFixed(2).replace('.', ',') : '');
+      updatePos(i, 'brutto', betrag !== 0 ? betrag.toFixed(2).replace('.', ',') : '');
     } else {
       updatePos(i, 'brutto', p.preis > 0 ? p.preis.toFixed(2).replace('.', ',') : '');
     }
