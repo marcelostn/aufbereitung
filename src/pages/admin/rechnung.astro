@@ -6,14 +6,37 @@ import { FIRMA } from '../../data/firma';
 import preiseJson from '../../data/preise.json';
 import lkwJson from '../../data/lkw.json';
 
+// Detaillierte Leistungsbeschreibungen (für §14 UStG: "Menge / Umfang der Leistung")
+const pkwBeschreibungen: Record<string, string> = {
+  'Außenreinigung':                  'Fahrzeugaufbereitung PKW – Außen: Felgenreinigung, Schaumbad-Vorwäsche, Handwäsche mit Zwei-Eimer-Methode, Türrahmen + Dichtungen, streifenfreies Trocknen, Reifenpflege (ca. 1,5 Std.)',
+  'Innen Basic':                     'Innenraumreinigung PKW Basic: Aussaugen Sitze + Boden + Kofferraum, Armaturen feucht abwischen, Türverkleidungen oberflächlich, Scheiben innen, Fußmatten reinigen (ca. 1,5 Std.)',
+  'Innen Premium':                   'Innenraumreinigung PKW Premium: Vollständige Innenreinigung inkl. Sitzpolster shampoonieren, Türverkleidungen tief, Kofferraum, Lederpflege, Lüftungslamellen, Geruchsneutralisierung (ca. 2,5 Std.)',
+  'Innen Full Detail':               'Innenraumreinigung PKW Full Detail: Dampfreinigung Polster + Lüftungen + Spalten, Sprühextraktion Teppiche, Sicherheitsgurte einzeln, Himmelreinigung, gezielte Geruchsneutralisierung (ca. 4 Std.)',
+  'Komplett Basic (Innen + Außen)':  'Komplettaufbereitung PKW Basic: Außenreinigung von Hand + Innenreinigung Basic (Aussaugen, Armaturen, Scheiben innen). 30 % Bündelrabatt enthalten (ca. 3 Std.)',
+  'Komplett Premium':                'Komplettaufbereitung PKW Premium: Außenreinigung + Innenreinigung Premium mit Polsterbehandlung und Lederpflege. 30 % Bündelrabatt enthalten (ca. 4 Std.)',
+  'Komplett Full Detail':            'Komplettaufbereitung PKW Full Detail: Außenreinigung + Innenreinigung Full Detail mit Dampfreinigung, Sprühextraktion und Geruchsneutralisierung. 30 % Bündelrabatt enthalten (ca. 5,5 Std.)',
+};
+
+const lkwBeschreibungen: Record<string, string> = {
+  'LKW Kabine Basic':          'Fahrzeugaufbereitung Nutzfahrzeug LKW – Kabine Basic: Aussaugen Fahrerkabine, Armaturen wischen, Scheiben innen (ca. 1,5 Std.)',
+  'LKW Kabine Premium':        'Fahrzeugaufbereitung Nutzfahrzeug LKW – Kabine Premium: Innenreinigung Fahrerkabine, Polster-/Teppichreinigung, Armaturenpflege, Scheibenreinigung innen (ca. 3 Std.)',
+  'LKW Kabine Full Detail':    'Fahrzeugaufbereitung Nutzfahrzeug LKW – Kabine Full Detail: Komplette Innenreinigung Kabine inkl. Dampfreinigung, Sprühextraktion und Geruchsneutralisierung (ca. 4,5 Std.)',
+  'Traktor Kabine Basic':      'Fahrzeugaufbereitung Nutzfahrzeug Traktor – Kabine Basic: Aussaugen Fahrerkabine, Armaturen wischen, Scheiben innen (ca. 1,5 Std.)',
+  'Traktor Kabine Premium':    'Fahrzeugaufbereitung Nutzfahrzeug Traktor – Kabine Premium: Innenreinigung Kabine, Polster-/Teppichreinigung, Armaturenpflege (ca. 3 Std.)',
+  'Transporter Innen Basic':   'Fahrzeugaufbereitung Nutzfahrzeug Transporter – Innen Basic: Aussaugen, Armaturen wischen, Scheiben innen, Laderaum kehren (ca. 2 Std.)',
+  'Transporter Innen Premium': 'Fahrzeugaufbereitung Nutzfahrzeug Transporter – Innen Premium: Komplette Innenreinigung Fahrerhaus + Laderaum, Polsterbehandlung (ca. 3,5 Std.)',
+};
+
 const pkwPakete = Object.values(preiseJson as Record<string, { name: string; bruttoPreis: number }>).map(p => ({
   label: `PKW: ${p.name}`,
   preis: p.bruttoPreis,
+  beschreibung: pkwBeschreibungen[p.name] ?? p.name,
 }));
 
 const lkwPakete = (lkwJson.pakete as Array<{ name: string; bruttoPreis: number }>).map(p => ({
   label: `Nutzfahrzeug: ${p.name}`,
   preis: p.bruttoPreis,
+  beschreibung: lkwBeschreibungen[p.name] ?? p.name,
 }));
 
 const presets = [

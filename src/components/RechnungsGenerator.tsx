@@ -75,6 +75,8 @@ function upsertArchiv(eintrag: ArchivEintrag) {
 export interface Preset {
   label: string;
   preis: number;
+  /** Detaillierte Leistungsbeschreibung, die in die Rechnung übernommen wird (§14 UStG). */
+  beschreibung?: string;
   /** Wenn gesetzt: Prozentwert (z.B. 0.15 = +15 %, -0.10 = -10 %). */
   prozent?: number;
   /** true → Prozent gilt auf die Summe aller anderen Positionen (für Rabatte auf alles).
@@ -191,7 +193,7 @@ export default function RechnungsGenerator({ firma, presets }: Props) {
   function onPreset(i: number, val: string) {
     const p = presets.find(p => p.label === val);
     if (!p) return;
-    updatePos(i, 'beschreibung', p.label);
+    updatePos(i, 'beschreibung', p.beschreibung ?? p.label);
 
     if (p.prozent) {
       let basisBetrag = 0;
@@ -239,6 +241,19 @@ export default function RechnungsGenerator({ firma, presets }: Props) {
 
   const hatIban = firma.iban && firma.iban.length > 5;
   const hatSteuer = firma.steuernummer || (firma.ustIdNr && !firma.ustIdNr.includes('XX'));
+
+  // ── Pflichtangaben §14 UStG: prüfen welche Firmendaten fehlen ──────────────
+  const isPlaceholder = (s: string, marker = 'X') => !s || s.toUpperCase().includes(marker);
+  const fehlendeFirmenDaten: string[] = [];
+  if (!firma.inhaber || firma.inhaber.toLowerCase() === 'inhaber') fehlendeFirmenDaten.push('Vor- und Nachname des Inhabers');
+  if (!firma.strasse) fehlendeFirmenDaten.push('Straße + Hausnummer');
+  if (isPlaceholder(firma.telefon)) fehlendeFirmenDaten.push('Telefonnummer');
+  if (!firma.email || firma.email.includes('autoaufbereitung-cloppenburg')) fehlendeFirmenDaten.push('Echte E-Mail-Adresse');
+  if (!firma.steuernummer && isPlaceholder(firma.ustIdNr)) fehlendeFirmenDaten.push('Steuernummer ODER USt-IdNr.');
+
+  // Kleinbetragsrechnung (§33 UStDV) bis 250 € brutto: Kundenadresse nicht zwingend
+  const istKleinbetrag = bruttoGes > 0 && bruttoGes <= 250;
+  const kundenAdresseFehltKritisch = !istKleinbetrag && bruttoGes > 0 && !kAdresse.trim();
 
   // Archiv-Statistik
   const jetzt = new Date();
@@ -386,6 +401,27 @@ export default function RechnungsGenerator({ firma, presets }: Props) {
           </button>
         </div>
 
+        {/* ── Validierungs-Panel: Fehlende Firmendaten (§14 UStG) ─────────── */}
+        {fehlendeFirmenDaten.length > 0 && (
+          <div className="bg-red-500/10 border border-red-500/40 rounded-xl p-4 mb-5">
+            <div className="flex items-start gap-3">
+              <svg className="w-5 h-5 text-red-400 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
+              </svg>
+              <div className="flex-1">
+                <p className="text-red-200 font-bold text-sm">Fehlende Pflichtangaben (§14 UStG)</p>
+                <p className="text-red-300/80 text-xs mt-1 mb-2">Folgende Firmendaten müssen vor Rechnungsversand in den Stammdaten ergänzt werden:</p>
+                <ul className="text-red-300/90 text-xs space-y-0.5 list-disc ml-4">
+                  {fehlendeFirmenDaten.map((f) => <li key={f}>{f}</li>)}
+                </ul>
+                <a href="/keystatic" className="inline-block mt-3 text-xs font-bold text-red-300 hover:text-red-200 underline underline-offset-2">
+                  Jetzt in Inhalte & Preise → Firmendaten ergänzen →
+                </a>
+              </div>
+            </div>
+          </div>
+        )}
+
         <form onSubmit={erstellen} className="space-y-5">
           {/* Rechnungsdaten */}
           <div className={SECTION}>
@@ -438,13 +474,17 @@ export default function RechnungsGenerator({ firma, presets }: Props) {
                 />
               </div>
               <div>
-                <label className={LABEL}>Adresse (optional)</label>
-                <input
+                <label className={LABEL}>Anschrift (Straße, PLZ, Ort)</label>
+                <textarea
                   value={kAdresse}
                   onChange={e => setKAdresse(e.target.value)}
-                  placeholder="Musterstraße 1, 49661 Cloppenburg"
-                  className={INPUT}
+                  rows={2}
+                  placeholder={'Musterstraße 1\n49661 Cloppenburg'}
+                  className={`${INPUT} resize-none`}
                 />
+                <p className="text-xs text-zinc-600 mt-1">
+                  Bei Rechnungsbeträgen ab 250&nbsp;€ <strong className="text-zinc-400">Pflicht</strong> (§14 UStG). Bei Privatkunden unter 250&nbsp;€ optional.
+                </p>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
@@ -489,12 +529,13 @@ export default function RechnungsGenerator({ firma, presets }: Props) {
                         </option>
                       ))}
                     </select>
-                    <input
+                    <textarea
                       value={pos.beschreibung}
                       onChange={e => updatePos(i, 'beschreibung', e.target.value)}
                       required
-                      placeholder="Leistungsbeschreibung"
-                      className={INPUT}
+                      rows={2}
+                      placeholder="Detaillierte Leistungsbeschreibung – Pflicht nach §14 UStG"
+                      className={`${INPUT} resize-y`}
                     />
                   </div>
                   <div className="flex-shrink-0">
@@ -602,6 +643,33 @@ export default function RechnungsGenerator({ firma, presets }: Props) {
             />
           </div>
 
+          {/* Adresse-Warnung bei Beträgen ab 250 € */}
+          {kundenAdresseFehltKritisch && (
+            <div className="bg-amber-500/10 border border-amber-500/40 rounded-xl p-4 flex items-start gap-3">
+              <svg className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
+              </svg>
+              <div className="flex-1">
+                <p className="text-amber-200 font-bold text-sm">Kunden-Anschrift fehlt</p>
+                <p className="text-amber-300/80 text-xs mt-1">
+                  Bei Rechnungsbeträgen ab 250&nbsp;€ ist die <strong>vollständige Anschrift</strong> (Straße + Hausnummer, PLZ + Ort) Pflicht (§14 UStG). Bitte oben im Feld „Anschrift" ergänzen.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Kleinbetragsrechnung-Hinweis (≤ 250 €) */}
+          {istKleinbetrag && !kAdresse.trim() && (
+            <div className="bg-zinc-800/60 border border-zinc-700 rounded-xl p-3 text-xs text-zinc-400 flex items-start gap-2">
+              <svg className="w-4 h-4 shrink-0 mt-0.5 text-zinc-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
+              </svg>
+              <span>
+                <strong className="text-zinc-300">Kleinbetragsrechnung</strong> (§33 UStDV) – bis 250&nbsp;€ ist die Kundenadresse nicht zwingend, wenn deine Firmendaten vollständig sind.
+              </span>
+            </div>
+          )}
+
           <button
             type="submit"
             className="w-full bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold py-3 rounded-xl transition-colors text-base"
@@ -705,7 +773,9 @@ export default function RechnungsGenerator({ firma, presets }: Props) {
             Rechnungsempfänger
           </div>
           <div style={{ fontWeight: 600, fontSize: '0.95rem' }}>{kName}</div>
-          {kAdresse && <div style={{ color: '#52525b' }}>{kAdresse}</div>}
+          {kAdresse && (
+            <div style={{ color: '#52525b', whiteSpace: 'pre-line' }}>{kAdresse}</div>
+          )}
           {kEmail && <div style={{ color: '#71717a', fontSize: '0.8rem' }}>{kEmail}</div>}
           {fahrzeug && (
             <div style={{ marginTop: '0.5rem', fontSize: '0.85rem' }}>
@@ -737,35 +807,56 @@ export default function RechnungsGenerator({ firma, presets }: Props) {
             {positionen.map((pos, i) => {
               const b = parseB(pos.brutto);
               const n = b / 1.19;
+              const isRabatt = b < 0;
               return (
                 <tr key={i} style={{ borderBottom: '1px solid #f4f4f5' }}>
-                  <td style={{ padding: '0.6rem 0', color: '#a1a1aa', fontSize: '0.8rem' }}>{i + 1}</td>
-                  <td style={{ padding: '0.6rem 0.5rem' }}>{pos.beschreibung}</td>
-                  <td style={{ padding: '0.6rem 0', textAlign: 'right', color: '#71717a' }}>{EUR(n)}</td>
-                  <td style={{ padding: '0.6rem 0', textAlign: 'right', fontWeight: 500 }}>{EUR(b)}</td>
+                  <td style={{ padding: '0.6rem 0', color: '#a1a1aa', fontSize: '0.8rem', verticalAlign: 'top' }}>{i + 1}</td>
+                  <td style={{ padding: '0.6rem 0.5rem', whiteSpace: 'pre-line', verticalAlign: 'top' }}>{pos.beschreibung}</td>
+                  <td style={{ padding: '0.6rem 0', textAlign: 'right', color: isRabatt ? '#16a34a' : '#71717a', verticalAlign: 'top' }}>{EUR(n)}</td>
+                  <td style={{ padding: '0.6rem 0', textAlign: 'right', fontWeight: 500, color: isRabatt ? '#16a34a' : '#18181b', verticalAlign: 'top' }}>{EUR(b)}</td>
                 </tr>
               );
             })}
           </tbody>
         </table>
 
-        {/* Totals */}
-        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '2rem' }}>
-          <div style={{ width: '16rem' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.25rem 0', color: '#52525b' }}>
-              <span>Nettobetrag</span>
-              <span>{EUR(nettoGes)}</span>
+        {/* Totals – mit Zwischensumme + Rabatt-Block bei vorhandenen Rabatten */}
+        {(() => {
+          const positiveBrutto = positionen.reduce((s, p) => s + Math.max(0, parseB(p.brutto)), 0);
+          const rabattBrutto   = positionen.reduce((s, p) => s + Math.min(0, parseB(p.brutto)), 0);
+          const hatRabatt = rabattBrutto < 0;
+          return (
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '2rem' }}>
+              <div style={{ width: '18rem' }}>
+                {hatRabatt && (
+                  <>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.25rem 0', color: '#52525b' }}>
+                      <span>Zwischensumme (brutto)</span>
+                      <span>{EUR(positiveBrutto)}</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.25rem 0', color: '#16a34a', fontWeight: 500 }}>
+                      <span>Rabatt</span>
+                      <span>{EUR(rabattBrutto)}</span>
+                    </div>
+                    <div style={{ borderTop: '1px solid #e4e4e7', margin: '0.4rem 0' }} />
+                  </>
+                )}
+                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.25rem 0', color: '#52525b' }}>
+                  <span>Nettobetrag</span>
+                  <span>{EUR(nettoGes)}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.25rem 0', color: '#52525b' }}>
+                  <span>zzgl. 19&nbsp;% USt</span>
+                  <span>{EUR(ustGes)}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem 0', borderTop: '2px solid #3f3f46', marginTop: '0.25rem', fontWeight: 700, fontSize: '1rem' }}>
+                  <span>Gesamtbetrag (brutto)</span>
+                  <span>{EUR(bruttoGes)}</span>
+                </div>
+              </div>
             </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.25rem 0', color: '#52525b' }}>
-              <span>USt 19&nbsp;%</span>
-              <span>{EUR(ustGes)}</span>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem 0', borderTop: '2px solid #3f3f46', marginTop: '0.25rem', fontWeight: 700, fontSize: '1rem' }}>
-              <span>Gesamtbetrag</span>
-              <span>{EUR(bruttoGes)}</span>
-            </div>
-          </div>
-        </div>
+          );
+        })()}
 
         {/* Payment */}
         <div style={{ borderTop: '1px solid #e4e4e7', paddingTop: '1.5rem', color: '#52525b', fontSize: '0.85rem' }}>
@@ -810,6 +901,11 @@ export default function RechnungsGenerator({ firma, presets }: Props) {
             fontSize: '0.8rem',
           }}
         >
+          {istKleinbetrag && !kAdresse.trim() && (
+            <div style={{ color: '#71717a', fontSize: '0.7rem', marginBottom: '0.6rem' }}>
+              Kleinbetragsrechnung gem. §33 UStDV (Bruttobetrag unter 250&nbsp;€).
+            </div>
+          )}
           Vielen Dank für Ihren Auftrag!&nbsp;&mdash;&nbsp;{firma.name} &middot; {firma.ort}
         </div>
       </div>
