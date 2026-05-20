@@ -8,7 +8,25 @@ interface Props {
   calLink: string;
   calLinks?: Record<string, string>;
   telefon: string;
+  email: string;
+  web3formsKey?: string;
 }
+
+interface Kundendaten {
+  vorname: string;
+  nachname: string;
+  telefon: string;
+  email: string;
+  strasse: string;
+  plz: string;
+  ort: string;
+  kennzeichen: string;
+}
+
+const LEERE_KUNDENDATEN: Kundendaten = {
+  vorname: '', nachname: '', telefon: '', email: '',
+  strasse: '', plz: '', ort: '', kennzeichen: '',
+};
 
 type FahrzeugGruppe = 'pkw' | 'lkw';
 type Reinigungsort = 'vorort' | 'beiuns';
@@ -437,8 +455,88 @@ function EntfernungSchritt({ entfernungKm, dispatch }: { entfernungKm: number; d
   );
 }
 
-export default function PriceCalculator({ calLink, calLinks = {}, telefon }: Props) {
+export default function PriceCalculator({ calLink, calLinks = {}, telefon, email, web3formsKey }: Props) {
   const [s, dispatch] = useReducer(reducer, init);
+  const [kunde, setKunde] = useState<Kundendaten>(LEERE_KUNDENDATEN);
+  const [kundenStatus, setKundenStatus] = useState<'idle' | 'sending' | 'success' | 'error'>('idle');
+  const [kundenFehler, setKundenFehler] = useState<string>('');
+
+  const setKundenFeld = (feld: keyof Kundendaten, wert: string) =>
+    setKunde((k) => ({ ...k, [feld]: wert }));
+
+  // Kundendaten beim Wechsel auf Schritt 6 aus localStorage laden (Komfort)
+  useEffect(() => {
+    if (s.schritt === 6 && kundenStatus === 'idle' && !kunde.vorname) {
+      try {
+        const cached = localStorage.getItem('kundendaten_v1');
+        if (cached) setKunde(JSON.parse(cached));
+      } catch {}
+    }
+  }, [s.schritt]);
+
+  async function kundenAbsenden(e: React.FormEvent) {
+    e.preventDefault();
+    if (!s.ergebnis) return;
+    setKundenStatus('sending');
+    setKundenFehler('');
+
+    const paketName = s.fahrzeugGruppe === 'pkw' ? PKW_PAKETE[s.pkwPaket].name : LKW_PAKETE[s.lkwPaket].name;
+    const aufpreisTexte: string[] = [];
+    if (s.tierhaare !== 'keine') aufpreisTexte.push(`Tierhaare ${s.tierhaare}`);
+    if (s.kindersitze > 0) aufpreisTexte.push(`${s.kindersitze} Kindersitz${s.kindersitze > 1 ? 'e' : ''}`);
+    if (s.nikotin) aufpreisTexte.push('Nikotingeruch');
+
+    const zeilen = [
+      `Neue Terminanfrage Autoaufbereitung`,
+      ``,
+      `── Kunde ──`,
+      `Name: ${kunde.vorname} ${kunde.nachname}`,
+      `Telefon: ${kunde.telefon}`,
+      `E-Mail: ${kunde.email}`,
+      `Adresse: ${kunde.strasse}, ${kunde.plz} ${kunde.ort}`,
+      kunde.kennzeichen ? `Fahrzeug/Kennzeichen: ${kunde.kennzeichen}` : '',
+      ``,
+      `── Leistung ──`,
+      `Paket: ${paketName}`,
+      `Reinigungsort: ${s.reinigungsort === 'beiuns' ? 'Bei uns in Cloppenburg' : 'Vor Ort beim Kunden'}`,
+      aufpreisTexte.length ? `Aufpreise: ${aufpreisTexte.join(', ')}` : '',
+      s.reinigungsort === 'vorort' && s.entfernungKm > 0 ? `Entfernung: ${s.entfernungKm} km` : '',
+      `Preis: ${eur(s.ergebnis.gesamt)} (inkl. MwSt.)`,
+    ].filter(Boolean).join('\n');
+
+    // Backup in localStorage
+    try { localStorage.setItem('kundendaten_v1', JSON.stringify(kunde)); } catch {}
+
+    if (web3formsKey) {
+      try {
+        const res = await fetch('https://api.web3forms.com/submit', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+          body: JSON.stringify({
+            access_key: web3formsKey,
+            subject: `Terminanfrage: ${kunde.vorname} ${kunde.nachname} – ${paketName}`,
+            from_name: `${kunde.vorname} ${kunde.nachname}`,
+            email: kunde.email || email,
+            replyto: kunde.email || undefined,
+            message: zeilen,
+          }),
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        if (!data.success) throw new Error(data.message || 'Unbekannter Fehler');
+        setKundenStatus('success');
+      } catch (err) {
+        setKundenFehler(err instanceof Error ? err.message : 'Versand fehlgeschlagen');
+        setKundenStatus('error');
+      }
+    } else {
+      // Kein Web3Forms-Key → mailto-Fallback (User-Mailprogramm öffnen)
+      const subject = encodeURIComponent(`Terminanfrage: ${kunde.vorname} ${kunde.nachname} – ${paketName}`);
+      const body = encodeURIComponent(zeilen);
+      window.location.href = `mailto:${email}?subject=${subject}&body=${body}`;
+      setKundenStatus('success');
+    }
+  }
 
   // Vorauswahl aus URL-Parameter (z.B. von Service-Detailseite: /preisrechner?paket=komplett_basic)
   useEffect(() => {
@@ -668,7 +766,148 @@ export default function PriceCalculator({ calLink, calLinks = {}, telefon }: Pro
         <p className="text-xs text-zinc-600 text-center">Festpreis · 19 % MwSt. · Aufpreise ggf. vor Ort nach Prüfung</p>
       </div>
 
-      <div className="mb-6">
+      {/* ── Kundendaten-Formular vor dem Termin ─────────────────────────── */}
+      {kundenStatus !== 'success' && (
+        <div className="max-w-2xl mx-auto mb-10">
+          <h2 className="text-2xl font-black tracking-tighter text-center mb-2">Ihre Daten</h2>
+          <p className="text-zinc-400 text-center mb-6 text-sm">
+            Damit wir Ihren Termin bestätigen und eine ordentliche Rechnung erstellen können.
+          </p>
+
+          <form onSubmit={kundenAbsenden} className="bg-zinc-900/60 border border-zinc-700/50 rounded-2xl p-6 space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs text-zinc-400 mb-1">Vorname *</label>
+                <input
+                  required
+                  value={kunde.vorname}
+                  onChange={(e) => setKundenFeld('vorname', e.target.value)}
+                  className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2.5 text-zinc-100 text-sm focus:border-amber-500 focus:outline-none"
+                  autoComplete="given-name"
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-zinc-400 mb-1">Nachname *</label>
+                <input
+                  required
+                  value={kunde.nachname}
+                  onChange={(e) => setKundenFeld('nachname', e.target.value)}
+                  className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2.5 text-zinc-100 text-sm focus:border-amber-500 focus:outline-none"
+                  autoComplete="family-name"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs text-zinc-400 mb-1">Telefon *</label>
+                <input
+                  required
+                  type="tel"
+                  value={kunde.telefon}
+                  onChange={(e) => setKundenFeld('telefon', e.target.value)}
+                  placeholder="0160 12345678"
+                  className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2.5 text-zinc-100 text-sm focus:border-amber-500 focus:outline-none"
+                  autoComplete="tel"
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-zinc-400 mb-1">E-Mail *</label>
+                <input
+                  required
+                  type="email"
+                  value={kunde.email}
+                  onChange={(e) => setKundenFeld('email', e.target.value)}
+                  placeholder="name@beispiel.de"
+                  className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2.5 text-zinc-100 text-sm focus:border-amber-500 focus:outline-none"
+                  autoComplete="email"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs text-zinc-400 mb-1">Straße + Hausnummer *</label>
+              <input
+                required
+                value={kunde.strasse}
+                onChange={(e) => setKundenFeld('strasse', e.target.value)}
+                placeholder="Musterstraße 1"
+                className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2.5 text-zinc-100 text-sm focus:border-amber-500 focus:outline-none"
+                autoComplete="street-address"
+              />
+            </div>
+
+            <div className="grid grid-cols-3 gap-4">
+              <div>
+                <label className="block text-xs text-zinc-400 mb-1">PLZ *</label>
+                <input
+                  required
+                  value={kunde.plz}
+                  onChange={(e) => setKundenFeld('plz', e.target.value)}
+                  placeholder="49661"
+                  className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2.5 text-zinc-100 text-sm focus:border-amber-500 focus:outline-none"
+                  autoComplete="postal-code"
+                  inputMode="numeric"
+                  pattern="[0-9]{5}"
+                />
+              </div>
+              <div className="col-span-2">
+                <label className="block text-xs text-zinc-400 mb-1">Ort *</label>
+                <input
+                  required
+                  value={kunde.ort}
+                  onChange={(e) => setKundenFeld('ort', e.target.value)}
+                  placeholder="Cloppenburg"
+                  className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2.5 text-zinc-100 text-sm focus:border-amber-500 focus:outline-none"
+                  autoComplete="address-level2"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs text-zinc-400 mb-1">Fahrzeug / Kennzeichen (optional)</label>
+              <input
+                value={kunde.kennzeichen}
+                onChange={(e) => setKundenFeld('kennzeichen', e.target.value)}
+                placeholder="z. B. VW Golf, CLP-XY 123"
+                className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2.5 text-zinc-100 text-sm focus:border-amber-500 focus:outline-none"
+              />
+            </div>
+
+            <p className="text-xs text-zinc-500 leading-relaxed">
+              Ihre Daten werden ausschließlich zur Terminbestätigung und Rechnungsstellung verwendet.
+              Mehr in der <a href="/datenschutz" className="text-amber-400 hover:text-amber-300 underline">Datenschutzerklärung</a>.
+            </p>
+
+            {kundenStatus === 'error' && (
+              <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3 text-sm text-red-300">
+                Versand fehlgeschlagen: {kundenFehler}. Bitte direkt anrufen ({telefon}).
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={kundenStatus === 'sending'}
+              className="btn-gold w-full font-bold py-3.5 rounded-xl cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {kundenStatus === 'sending' ? 'Wird gesendet …' : 'Daten senden & Termin wählen →'}
+            </button>
+          </form>
+        </div>
+      )}
+
+      {/* ── Termin-Kalender erscheint nach erfolgreichem Absenden ───────── */}
+      <div className="mb-6" style={{ display: kundenStatus === 'success' ? 'block' : 'none' }}>
+        <div className="max-w-2xl mx-auto mb-6 bg-green-500/10 border border-green-500/30 rounded-xl p-4 flex items-center gap-3">
+          <svg className="w-6 h-6 text-green-400 shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+          </svg>
+          <div>
+            <p className="font-bold text-green-200">Daten gesendet</p>
+            <p className="text-sm text-green-300/80">Wählen Sie jetzt unten Ihren Wunschtermin – wir bestätigen ihn schnellstmöglich.</p>
+          </div>
+        </div>
+
         <h2 className="text-2xl font-black tracking-tighter text-center mb-2">Jetzt Termin buchen</h2>
         <p className="text-zinc-400 text-center mb-6 text-sm">Wählen Sie einen freien Tag — Ihre Leistung wird automatisch übertragen</p>
         {activeCalLink && s.ergebnis ? (() => {
@@ -683,8 +922,17 @@ export default function PriceCalculator({ calLink, calLinks = {}, telefon }: Pro
             aufpreisTexte.length ? aufpreisTexte.join(', ') : null,
             s.reinigungsort === 'vorort' && s.entfernungKm > 0 ? `${s.entfernungKm} km` : null,
             `Preis: ${eur(s.ergebnis.gesamt)}`,
+            kunde.strasse ? `Adresse: ${kunde.strasse}, ${kunde.plz} ${kunde.ort}` : null,
+            kunde.telefon ? `Tel: ${kunde.telefon}` : null,
+            kunde.kennzeichen ? `Fahrzeug: ${kunde.kennzeichen}` : null,
           ].filter(Boolean).join(' | ');
-          const src = `https://cal.eu/${activeCalLink}?notes=${encodeURIComponent(notiz)}`;
+          // Cal.eu nimmt Vorname/Nachname/Email vorab entgegen
+          const calParams = new URLSearchParams({
+            notes: notiz,
+            ...(kunde.email ? { email: kunde.email } : {}),
+            ...(kunde.vorname || kunde.nachname ? { name: `${kunde.vorname} ${kunde.nachname}`.trim() } : {}),
+          });
+          const src = `https://cal.eu/${activeCalLink}?${calParams.toString()}`;
           return (
             <div className="rounded-2xl border border-zinc-700/50 overflow-hidden" style={{ height: '700px' }}>
               <iframe
