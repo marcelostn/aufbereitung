@@ -1,18 +1,39 @@
 ---
 import { FIRMA } from '../data/firma';
+import NewsletterAnmeldung from './NewsletterAnmeldung';
 ---
 
 <footer class="bg-zinc-950 border-t border-zinc-800 text-zinc-400 mt-16">
+
+  <!-- Newsletter-Block -->
+  <div class="border-b border-zinc-800 bg-gradient-to-b from-zinc-950 to-zinc-900/40">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 py-12 text-center">
+      <p class="text-amber-400/80 text-xs font-semibold tracking-[0.22em] uppercase mb-3">Newsletter</p>
+      <h2 class="text-2xl sm:text-3xl font-black tracking-tighter text-zinc-100 mb-3">
+        Saisonpflege-Tipps direkt ins Postfach
+      </h2>
+      <p class="text-zinc-400 text-sm leading-relaxed max-w-xl mx-auto mb-6">
+        Einmal im Monat — Pflege-Tipps zur Saison, Vorher/Nachher-Beispiele aus echten Aufträgen
+        und gelegentlich eine Sonderaktion für Stammkunden. Kein Spam, jederzeit abbestellbar.
+      </p>
+      <NewsletterAnmeldung
+        client:load
+        empfaenger={FIRMA.email}
+        web3formsKey={FIRMA.web3formsKey}
+      />
+    </div>
+  </div>
+
   <div class="max-w-6xl mx-auto px-4 sm:px-6 py-10 grid grid-cols-1 sm:grid-cols-3 gap-8">
     <div>
       <h3 class="font-bold text-zinc-100 mb-3">Kontakt</h3>
       <p class="text-sm leading-7">
         {FIRMA.name}<br />
         {FIRMA.plz} {FIRMA.ort}<br />
-        <a href={`tel:${FIRMA.telefon.replace(/\s/g, '')}`} class="hover:text-orange-400 transition-colors duration-200">
+        <a href={`tel:${FIRMA.telefon.replace(/\s/g, '')}`} class="hover:text-amber-400 transition-colors duration-200">
           {FIRMA.telefon}
         </a><br />
-        <a href={`mailto:${FIRMA.email}`} class="hover:text-orange-400 transition-colors duration-200 break-all">
+        <a href={`mailto:${FIRMA.email}`} class="hover:text-amber-400 transition-colors duration-200 break-all">
           {FIRMA.email}
         </a>
       </p>
@@ -21,19 +42,19 @@ import { FIRMA } from '../data/firma';
     <div>
       <h3 class="font-bold text-zinc-100 mb-3">Leistungen</h3>
       <ul class="text-sm leading-8">
-        <li><a href="/leistungen#aussen" class="hover:text-orange-400 transition-colors duration-200">Außenreinigung</a></li>
-        <li><a href="/leistungen#innen" class="hover:text-orange-400 transition-colors duration-200">Innenreinigung</a></li>
-        <li><a href="/leistungen#komplett" class="hover:text-orange-400 transition-colors duration-200">Komplett-Pakete</a></li>
-        <li><a href="/leistungen#lkw" class="hover:text-orange-400 transition-colors duration-200">LKW / Traktor</a></li>
-        <li><a href="/preisrechner" class="hover:text-orange-400 transition-colors duration-200">Preisrechner</a></li>
+        <li><a href="/leistungen#aussen" class="hover:text-amber-400 transition-colors duration-200">Außenreinigung</a></li>
+        <li><a href="/leistungen#innen" class="hover:text-amber-400 transition-colors duration-200">Innenreinigung</a></li>
+        <li><a href="/leistungen#komplett" class="hover:text-amber-400 transition-colors duration-200">Komplett-Pakete</a></li>
+        <li><a href="/leistungen#lkw" class="hover:text-amber-400 transition-colors duration-200">LKW / Traktor</a></li>
+        <li><a href="/preisrechner" class="hover:text-amber-400 transition-colors duration-200">Preisrechner</a></li>
       </ul>
     </div>
 
     <div>
       <h3 class="font-bold text-zinc-100 mb-3">Rechtliches</h3>
       <ul class="text-sm leading-8">
-        <li><a href="/impressum" class="hover:text-orange-400 transition-colors duration-200">Impressum</a></li>
-        <li><a href="/datenschutz" class="hover:text-orange-400 transition-colors duration-200">Datenschutz</a></li>
+        <li><a href="/impressum" class="hover:text-amber-400 transition-colors duration-200">Impressum</a></li>
+        <li><a href="/datenschutz" class="hover:text-amber-400 transition-colors duration-200">Datenschutz</a></li>
       </ul>
       <p class="mt-4 text-xs text-zinc-600">
         Einzugsgebiet: {FIRMA.einzugsgebiet}
