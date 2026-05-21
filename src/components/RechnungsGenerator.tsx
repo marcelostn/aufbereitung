@@ -1,4 +1,15 @@
 import { useState, useEffect } from 'react';
+import {
+  addStempel,
+  findeStempel,
+  markiereEinloesung,
+  normalisiereTelefon,
+  offeneBelohnungen,
+  bisNaechsteBelohnung,
+  BELOHNUNG_INTERVALL,
+  type KundenStempel,
+} from '../lib/treue';
+import { BELOHNUNGEN } from '../data/treue-belohnungen';
 
 const EUR = (n: number) =>
   new Intl.NumberFormat('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n) + ' €';
@@ -43,6 +54,7 @@ interface ArchivEintrag {
   kName: string;
   kAdresse: string;
   kEmail: string;
+  kTelefon?: string;
   fahrzeug: string;
   positionen: Pos[];
   zahlung: 'bar' | 'karte' | 'ueberweisung';
@@ -117,7 +129,11 @@ export default function RechnungsGenerator({ firma, presets }: Props) {
   const [kName, setKName] = useState('');
   const [kAdresse, setKAdresse] = useState('');
   const [kEmail, setKEmail] = useState('');
+  const [kTelefon, setKTelefon] = useState('');
   const [fahrzeug, setFahrzeug] = useState('');
+  const [treueKunde, setTreueKunde] = useState<KundenStempel | null>(null);
+  const [belohnungEingesetzt, setBelohnungEingesetzt] = useState<string | null>(null); // produkt-name
+  const [waehleBelohnung, setWaehleBelohnung] = useState(false);
   const [positionen, setPositionen] = useState<Pos[]>([{ beschreibung: '', brutto: '' }]);
   const [zahlung, setZahlung] = useState<'bar' | 'karte' | 'ueberweisung'>('bar');
   const [zahlungsziel, setZahlungsziel] = useState('14');
@@ -146,6 +162,7 @@ export default function RechnungsGenerator({ firma, presets }: Props) {
       setKName(`${vorname} ${nachname}`.trim());
       setKAdresse([strasse, `${plz} ${ort}`.trim()].filter(Boolean).join('\n'));
       setKEmail(params.get('kEmail') ?? '');
+      setKTelefon(params.get('kTelefon') ?? '');
       setFahrzeug(params.get('fahrzeug') ?? '');
       if (paket) {
         const brutto = preis ? parseFloat(preis).toFixed(2).replace('.', ',') : '';
@@ -168,7 +185,11 @@ export default function RechnungsGenerator({ firma, presets }: Props) {
     setKName('');
     setKAdresse('');
     setKEmail('');
+    setKTelefon('');
     setFahrzeug('');
+    setTreueKunde(null);
+    setBelohnungEingesetzt(null);
+    setWaehleBelohnung(false);
     setPositionen([{ beschreibung: '', brutto: '' }]);
     setZahlung('bar');
     setZahlungsziel('14');
@@ -182,6 +203,7 @@ export default function RechnungsGenerator({ firma, presets }: Props) {
     setKName(e.kName);
     setKAdresse(e.kAdresse);
     setKEmail(e.kEmail);
+    setKTelefon(e.kTelefon ?? '');
     setFahrzeug(e.fahrzeug);
     setPositionen(e.positionen);
     setZahlung(e.zahlung);
@@ -190,6 +212,15 @@ export default function RechnungsGenerator({ firma, presets }: Props) {
     setView('invoice');
     window.scrollTo(0, 0);
   }
+
+  // Treuekunde-Status nachladen, sobald Telefonnummer eingegeben wird
+  useEffect(() => {
+    if (kTelefon && normalisiereTelefon(kTelefon).length >= 4) {
+      setTreueKunde(findeStempel(kTelefon));
+    } else {
+      setTreueKunde(null);
+    }
+  }, [kTelefon]);
 
   function loescheRechnung(rNrZuLoeschen: string) {
     if (!confirm(`Rechnung ${rNrZuLoeschen} wirklich aus dem Archiv löschen?`)) return;
@@ -257,15 +288,36 @@ export default function RechnungsGenerator({ firma, presets }: Props) {
     e.preventDefault();
     saveNummer(rNr);
     const eintrag: ArchivEintrag = {
-      rNr, rDatum, lDatum, kName, kAdresse, kEmail, fahrzeug,
+      rNr, rDatum, lDatum, kName, kAdresse, kEmail, kTelefon, fahrzeug,
       positionen, zahlung, zahlungsziel, notiz,
       gespeichertAm: new Date().toISOString(),
       brutto: bruttoGes,
     };
     upsertArchiv(eintrag);
+    // Treue-Stempel: +1 wenn Telefon gepflegt ist
+    if (kTelefon) {
+      addStempel(kTelefon, kName, rDatum);
+      if (belohnungEingesetzt) {
+        markiereEinloesung(kTelefon, { datum: rDatum, produkt: belohnungEingesetzt, rechnungsNr: rNr });
+      }
+    }
     setArchiv(loadArchiv());
     setView('invoice');
     window.scrollTo(0, 0);
+  }
+
+  function belohnungEinsetzen(belohnung: { id: string; name: string }) {
+    // Erst leere Position belegen, sonst neue hinzufügen
+    const leereIdx = positionen.findIndex((p) => !p.beschreibung.trim() && !p.brutto.trim());
+    const beschreibung = `Treue-Belohnung (5. Aufbereitung): ${belohnung.name} – kostenfrei`;
+    if (leereIdx >= 0) {
+      updatePos(leereIdx, 'beschreibung', beschreibung);
+      updatePos(leereIdx, 'brutto', '0,00');
+    } else if (positionen.length < 8) {
+      setPositionen((p) => [...p, { beschreibung, brutto: '0,00' }]);
+    }
+    setBelohnungEingesetzt(belohnung.name);
+    setWaehleBelohnung(false);
   }
 
   const hatIban = firma.iban && firma.iban.length > 5;
@@ -537,7 +589,17 @@ export default function RechnungsGenerator({ firma, presets }: Props) {
                   Bei Rechnungsbeträgen ab 250&nbsp;€ <strong className="text-zinc-400">Pflicht</strong> (§14 UStG). Bei Privatkunden unter 250&nbsp;€ optional.
                 </p>
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                  <label className={LABEL}>Telefon <span className="text-amber-500/80">(für Treue)</span></label>
+                  <input
+                    type="tel"
+                    value={kTelefon}
+                    onChange={e => setKTelefon(e.target.value)}
+                    placeholder="0160 1234567"
+                    className={INPUT}
+                  />
+                </div>
                 <div>
                   <label className={LABEL}>E-Mail (optional)</label>
                   <input
@@ -558,6 +620,103 @@ export default function RechnungsGenerator({ firma, presets }: Props) {
                   />
                 </div>
               </div>
+
+              {/* Treue-Status-Banner */}
+              {kTelefon && normalisiereTelefon(kTelefon).length >= 4 && (() => {
+                const istNeukunde = !treueKunde;
+                const offen = offeneBelohnungen(treueKunde);
+                const zaehler = treueKunde?.anzahlAuftraege ?? 0;
+                const bisNaechste = bisNaechsteBelohnung(treueKunde);
+
+                if (offen > 0) {
+                  return (
+                    <div className="mt-3 bg-amber-500/15 border border-amber-500/50 rounded-xl p-4">
+                      <div className="flex items-start gap-3">
+                        <span className="text-2xl">🎁</span>
+                        <div className="flex-1">
+                          <p className="font-bold text-amber-200 text-sm">
+                            Treuekunde! Belohnung verdient — bereits {zaehler} {zaehler === 1 ? 'Auftrag' : 'Aufträge'}
+                          </p>
+                          <p className="text-amber-300/80 text-xs mt-0.5">
+                            Wähle ein kleines Pflegeprodukt als Goodie für den Kunden:
+                          </p>
+                          {belohnungEingesetzt ? (
+                            <div className="mt-2 inline-flex items-center gap-2 text-xs text-green-300 bg-green-500/10 border border-green-500/30 rounded-lg px-3 py-1.5">
+                              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+                              </svg>
+                              Belohnung eingesetzt: {belohnungEingesetzt}
+                              <button
+                                type="button"
+                                onClick={() => { setBelohnungEingesetzt(null); }}
+                                className="ml-2 text-green-400/60 hover:text-green-300 text-base leading-none"
+                                title="Belohnung doch nicht einlösen"
+                              >
+                                ✕
+                              </button>
+                            </div>
+                          ) : !waehleBelohnung ? (
+                            <button
+                              type="button"
+                              onClick={() => setWaehleBelohnung(true)}
+                              className="mt-2 bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold text-xs px-3 py-1.5 rounded-lg transition-colors"
+                            >
+                              Belohnung jetzt einlösen
+                            </button>
+                          ) : (
+                            <div className="mt-3 space-y-1.5">
+                              {BELOHNUNGEN.map((b) => (
+                                <button
+                                  key={b.id}
+                                  type="button"
+                                  onClick={() => belohnungEinsetzen(b)}
+                                  className="w-full text-left bg-zinc-800/80 hover:bg-amber-500/15 border border-zinc-700 hover:border-amber-500/50 rounded-lg px-3 py-2 transition-colors"
+                                >
+                                  <div className="flex items-center justify-between gap-3">
+                                    <div className="min-w-0">
+                                      <p className="font-semibold text-zinc-200 text-sm">{b.name}</p>
+                                      <p className="text-xs text-zinc-500 truncate">{b.hinweis}</p>
+                                    </div>
+                                    <span className="text-xs text-zinc-600 shrink-0">~{b.wert} €</span>
+                                  </div>
+                                </button>
+                              ))}
+                              <button
+                                type="button"
+                                onClick={() => setWaehleBelohnung(false)}
+                                className="text-xs text-zinc-500 hover:text-zinc-300 mt-1"
+                              >
+                                Abbrechen
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                }
+
+                if (istNeukunde) {
+                  return (
+                    <div className="mt-3 bg-zinc-800/60 border border-zinc-700 rounded-xl px-4 py-2.5 text-xs text-zinc-400 flex items-center gap-2">
+                      <span className="text-base">✨</span>
+                      <span>Neukunde — wird mit dieser Rechnung in der Treuekarte angelegt. Belohnung nach {BELOHNUNG_INTERVALL} Aufträgen.</span>
+                    </div>
+                  );
+                }
+
+                return (
+                  <div className="mt-3 bg-zinc-800/60 border border-zinc-700 rounded-xl px-4 py-2.5 text-xs flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2 text-zinc-300">
+                      <span className="text-base">🪙</span>
+                      <span>Stammkunde: <strong className="text-zinc-100">{zaehler}</strong> {zaehler === 1 ? 'Auftrag' : 'Aufträge'} bisher</span>
+                    </div>
+                    <span className="text-amber-400/80 font-semibold">
+                      Noch {bisNaechste} bis zur Belohnung
+                    </span>
+                  </div>
+                );
+              })()}
             </div>
           </div>
 

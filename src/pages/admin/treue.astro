@@ -1,0 +1,42 @@
+---
+export const prerender = false;
+import '../../styles/global.css';
+import TreueUebersicht from '../../components/TreueUebersicht';
+---
+
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Treuekunden – Admin</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      *, *::before, *::after { box-sizing: border-box; }
+      body { font-family: 'Inter', system-ui, sans-serif; }
+    </style>
+  </head>
+
+  <body class="bg-zinc-950 text-zinc-100 min-h-screen">
+    <!-- Admin nav bar -->
+    <div class="border-b border-zinc-800 bg-zinc-900/70 px-5 py-3 flex items-center gap-3 text-sm">
+      <a href="/admin" class="text-zinc-500 hover:text-zinc-300 transition-colors">
+        ← Admin
+      </a>
+      <span class="text-zinc-700">|</span>
+      <span class="text-zinc-300 font-medium">Treuekunden</span>
+      <a href="/admin/logout" class="ml-auto text-zinc-600 hover:text-red-400 text-xs transition-colors">
+        Abmelden
+      </a>
+    </div>
+
+    <main class="p-5 sm:p-8">
+      <TreueUebersicht client:load />
+    </main>
+  </body>
+</html>

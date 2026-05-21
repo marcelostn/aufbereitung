@@ -1,0 +1,285 @@
+---
+export const prerender = false;
+import { FIRMA } from '../../data/firma';
+---
+
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Treuekarte drucken – Admin</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;700&family=Inter:wght@400;500;600;700;900&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      *, *::before, *::after { box-sizing: border-box; }
+      html, body { margin: 0; padding: 0; }
+      body {
+        font-family: 'Inter', system-ui, sans-serif;
+        background: #18181b;
+        color: #f4f4f5;
+        min-height: 100vh;
+      }
+
+      .header {
+        background: #09090b;
+        border-bottom: 1px solid #27272a;
+        padding: 0.75rem 1.25rem;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        font-size: 0.875rem;
+      }
+      .header a { color: #71717a; text-decoration: none; transition: color 0.15s; }
+      .header a:hover { color: #d4d4d8; }
+      .header .sep { color: #3f3f46; }
+      .header .title { color: #e4e4e7; font-weight: 500; }
+      .header .spacer { flex: 1; }
+      .header .logout { color: #52525b; font-size: 0.75rem; }
+      .header .logout:hover { color: #ef4444; }
+
+      .toolbar {
+        background: #27272a;
+        padding: 1rem 1.5rem;
+        display: flex;
+        gap: 1rem;
+        align-items: center;
+        flex-wrap: wrap;
+      }
+      .toolbar button {
+        background: #c9a86a;
+        color: #09090b;
+        border: none;
+        padding: 0.65rem 1.5rem;
+        font-weight: 700;
+        font-family: inherit;
+        border-radius: 0.5rem;
+        cursor: pointer;
+        transition: background 0.15s;
+      }
+      .toolbar button:hover { background: #d4b67e; }
+      .toolbar p {
+        margin: 0;
+        color: #a1a1aa;
+        font-size: 0.85rem;
+      }
+
+      /* Druckbogen: A4 mit 4 A6-Karten (2×2) */
+      .bogen-wrapper {
+        padding: 2rem;
+        display: flex;
+        justify-content: center;
+      }
+      .bogen {
+        width: 210mm;
+        height: 297mm;
+        background: white;
+        color: #18181b;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        grid-template-rows: 1fr 1fr;
+        gap: 0;
+        box-shadow: 0 8px 40px rgba(0,0,0,0.5);
+      }
+
+      .karte {
+        position: relative;
+        padding: 9mm 10mm;
+        border: 1px dashed #d4d4d8;
+        display: flex;
+        flex-direction: column;
+        gap: 4mm;
+        overflow: hidden;
+      }
+      .karte-rand {
+        position: absolute;
+        inset: 4mm;
+        border: 1px solid #18181b;
+        border-radius: 2mm;
+        pointer-events: none;
+      }
+      .karte-inhalt {
+        position: relative;
+        z-index: 1;
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        padding: 3mm 2mm;
+      }
+
+      .karte-header {
+        text-align: center;
+        margin-bottom: 3mm;
+      }
+      .karte-eyebrow {
+        font-size: 7pt;
+        font-weight: 700;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: #a16207;
+        margin-bottom: 1.5mm;
+      }
+      .karte-titel {
+        font-family: 'Cormorant Garamond', serif;
+        font-size: 22pt;
+        font-weight: 700;
+        line-height: 1;
+        color: #09090b;
+        margin-bottom: 1mm;
+      }
+      .karte-firma {
+        font-size: 9pt;
+        color: #52525b;
+      }
+
+      .karte-kunde {
+        font-size: 8pt;
+        color: #71717a;
+        margin-top: 2mm;
+      }
+      .karte-kunde-linie {
+        border-bottom: 0.5pt solid #18181b;
+        height: 5mm;
+        margin-top: 1mm;
+      }
+
+      .stempel-zeile {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 2mm;
+        margin: 4mm 0 3mm;
+        flex: 1;
+      }
+      .stempel {
+        flex: 1;
+        aspect-ratio: 1;
+        max-width: 14mm;
+        border: 1.5pt dashed #71717a;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #d4d4d8;
+        font-family: 'Cormorant Garamond', serif;
+        font-size: 14pt;
+        font-weight: 700;
+      }
+      .stempel.belohnung {
+        border: 2pt solid #c9a86a;
+        background: #fef3c7;
+        color: #a16207;
+        font-size: 9pt;
+        font-weight: 700;
+        font-family: 'Inter', sans-serif;
+      }
+      .stempel-zahl {
+        position: absolute;
+        bottom: -3mm;
+        font-size: 6pt;
+        color: #a1a1aa;
+      }
+
+      .karte-belohnung {
+        text-align: center;
+        background: #fef3c7;
+        border: 1pt solid #fde68a;
+        border-radius: 1.5mm;
+        padding: 2mm 3mm;
+        font-size: 8pt;
+        color: #78350f;
+        line-height: 1.35;
+      }
+      .karte-belohnung strong { color: #92400e; }
+
+      .karte-footer {
+        text-align: center;
+        font-size: 7pt;
+        color: #a1a1aa;
+        margin-top: 2mm;
+      }
+      .karte-footer .kontakt { color: #71717a; }
+
+      @media print {
+        body { background: white; }
+        .header, .toolbar, .bogen-wrapper { background: white; }
+        .header, .toolbar { display: none; }
+        .bogen-wrapper { padding: 0; }
+        .bogen {
+          box-shadow: none;
+          width: 100%;
+          height: 100vh;
+        }
+        .karte { border: none; }
+      }
+      @page {
+        size: A4;
+        margin: 0;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="header">
+      <a href="/admin">← Admin</a>
+      <span class="sep">|</span>
+      <a href="/admin/treue">← Treuekunden</a>
+      <span class="sep">|</span>
+      <span class="title">Treuekarte drucken</span>
+      <div class="spacer"></div>
+      <a href="/admin/logout" class="logout">Abmelden</a>
+    </div>
+
+    <div class="toolbar">
+      <button type="button" onclick="window.print()">Drucken / Als PDF</button>
+      <p>
+        Druckt einen A4-Bogen mit 4 Treuekarten. Anschließend an den gestrichelten Linien
+        ausschneiden. Pro Kunde eine Karte mitgeben.
+      </p>
+    </div>
+
+    <div class="bogen-wrapper">
+      <div class="bogen">
+        {[0, 1, 2, 3].map(() => (
+          <div class="karte">
+            <div class="karte-rand"></div>
+            <div class="karte-inhalt">
+              <div class="karte-header">
+                <div class="karte-eyebrow">Treuekarte</div>
+                <div class="karte-titel">5 × und es gibt was geschenkt</div>
+                <div class="karte-firma">{FIRMA.name || 'Autoaufbereitung Cloppenburg'}</div>
+              </div>
+
+              <div class="karte-kunde">
+                Name: <div class="karte-kunde-linie"></div>
+              </div>
+
+              <div class="stempel-zeile">
+                <div class="stempel">1</div>
+                <div class="stempel">2</div>
+                <div class="stempel">3</div>
+                <div class="stempel">4</div>
+                <div class="stempel belohnung">5<br />🎁</div>
+              </div>
+
+              <div class="karte-belohnung">
+                Bei der <strong>5. Aufbereitung</strong> gibt es ein <strong>kleines Pflegeprodukt</strong> aus
+                der Koch Chemie Profi-Linie geschenkt — passend zu Ihrem Auto.
+              </div>
+
+              <div class="karte-footer">
+                <span class="kontakt">{FIRMA.telefon && !FIRMA.telefon.includes('X') ? FIRMA.telefon : ''}</span>
+                {FIRMA.telefon && !FIRMA.telefon.includes('X') && FIRMA.email && !FIRMA.email.includes('autoaufbereitung-cloppenburg') && <span class="kontakt"> · </span>}
+                <span class="kontakt">{FIRMA.email && !FIRMA.email.includes('autoaufbereitung-cloppenburg') ? FIRMA.email : ''}</span>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  </body>
+</html>
