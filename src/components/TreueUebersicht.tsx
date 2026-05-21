@@ -81,6 +81,17 @@ export default function TreueUebersicht() {
         <h1 className="text-2xl font-bold text-zinc-100">Treuekunden</h1>
         <div className="flex gap-2">
           <a
+            href="/admin/stempel-motiv"
+            className="bg-zinc-800 hover:bg-amber-500/15 border border-zinc-700 hover:border-amber-500/50 text-zinc-200 hover:text-amber-300 font-semibold px-4 py-2 rounded-lg text-sm transition-colors flex items-center gap-2"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <circle cx="12" cy="12" r="9" />
+              <circle cx="12" cy="12" r="6" />
+              <circle cx="12" cy="12" r="2" />
+            </svg>
+            Stempel-Motiv designen
+          </a>
+          <a
             href="/admin/treuekarte"
             className="bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-zinc-200 font-semibold px-4 py-2 rounded-lg text-sm transition-colors flex items-center gap-2"
           >
