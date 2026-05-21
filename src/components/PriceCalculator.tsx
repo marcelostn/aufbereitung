@@ -2,7 +2,9 @@ import React, { useReducer, useEffect, useRef, useState } from 'react';
 import { PKW_PAKETE, type PaketTyp } from '../data/preise';
 import { LKW_PAKETE, type LkwPaketTyp } from '../data/lkw';
 import { type TierhaarStufe, type FahrzeugZuschlagTyp } from '../data/aufpreise';
-import { berechnePreis, type PreisErgebnis } from '../lib/calc';
+import { berechnePreis, type PreisErgebnis, type SpezialAufpreise } from '../lib/calc';
+
+type SpezialKey = keyof SpezialAufpreise;
 
 interface Props {
   calLink: string;
@@ -40,6 +42,7 @@ interface State {
   tierhaare: TierhaarStufe;
   kindersitze: number;
   nikotin: boolean;
+  spezial: Required<SpezialAufpreise>;
   reinigungsort: Reinigungsort | null;
   entfernungKm: number;
   ergebnis: PreisErgebnis | null;
@@ -53,6 +56,7 @@ type Action =
   | { type: 'SET_TIERHAARE'; value: TierhaarStufe }
   | { type: 'SET_KINDERSITZE'; value: number }
   | { type: 'TOGGLE_NIKOTIN' }
+  | { type: 'TOGGLE_SPEZIAL'; key: SpezialKey }
   | { type: 'SET_REINIGUNGSORT'; value: Reinigungsort }
   | { type: 'SET_KM'; value: number }
   | { type: 'WEITER' }
@@ -69,6 +73,7 @@ const init: State = {
   tierhaare: 'keine',
   kindersitze: 0,
   nikotin: false,
+  spezial: { maeusekot: false, extremeVerschmutzung: false, schimmel: false, lebensmittel: false },
   reinigungsort: null,
   entfernungKm: 0,
   ergebnis: null,
@@ -77,8 +82,8 @@ const init: State = {
 
 function kalkuliere(s: State, km: number): PreisErgebnis {
   return s.fahrzeugGruppe === 'pkw'
-    ? berechnePreis({ typ: 'pkw', paket: s.pkwPaket, fahrzeugZuschlag: s.fahrzeugZuschlag, tierhaare: s.tierhaare, kindersitze: s.kindersitze, nikotin: s.nikotin, entfernungKm: km })
-    : berechnePreis({ typ: 'lkw', paket: s.lkwPaket, tierhaare: s.tierhaare, nikotin: s.nikotin, entfernungKm: km });
+    ? berechnePreis({ typ: 'pkw', paket: s.pkwPaket, fahrzeugZuschlag: s.fahrzeugZuschlag, tierhaare: s.tierhaare, kindersitze: s.kindersitze, nikotin: s.nikotin, ...s.spezial, entfernungKm: km })
+    : berechnePreis({ typ: 'lkw', paket: s.lkwPaket, tierhaare: s.tierhaare, nikotin: s.nikotin, ...s.spezial, entfernungKm: km });
 }
 
 function reducer(s: State, a: Action): State {
@@ -95,6 +100,8 @@ function reducer(s: State, a: Action): State {
       return { ...s, kindersitze: Math.max(0, a.value) };
     case 'TOGGLE_NIKOTIN':
       return { ...s, nikotin: !s.nikotin };
+    case 'TOGGLE_SPEZIAL':
+      return { ...s, spezial: { ...s.spezial, [a.key]: !s.spezial[a.key] } };
     case 'SET_REINIGUNGSORT': {
       if (a.value === 'beiuns') {
         // direkt berechnen, Entfernungsschritt überspringen
@@ -485,6 +492,10 @@ export default function PriceCalculator({ calLink, calLinks = {}, telefon, email
     if (s.tierhaare !== 'keine') aufpreisTexte.push(`Tierhaare ${s.tierhaare}`);
     if (s.kindersitze > 0) aufpreisTexte.push(`${s.kindersitze} Kindersitz${s.kindersitze > 1 ? 'e' : ''}`);
     if (s.nikotin) aufpreisTexte.push('Nikotingeruch');
+    if (s.spezial.maeusekot) aufpreisTexte.push('Mäusekot/Nagerbefall');
+    if (s.spezial.extremeVerschmutzung) aufpreisTexte.push('Extreme Verschmutzung');
+    if (s.spezial.schimmel) aufpreisTexte.push('Schimmel/Feuchtigkeit');
+    if (s.spezial.lebensmittel) aufpreisTexte.push('Lebensmittel-/Bioabfall-Reste');
 
     // Prefill-Link für 1-Klick-Rechnung im Admin
     const origin = typeof window !== 'undefined' ? window.location.origin : '';
@@ -557,13 +568,20 @@ export default function PriceCalculator({ calLink, calLinks = {}, telefon, email
     }
   }
 
-  // Vorauswahl aus URL-Parameter (z.B. von Service-Detailseite: /preisrechner?paket=komplett_basic)
+  // Vorauswahl aus URL-Parameter (z.B. von Service-Detailseite: /preisrechner?paket=komplett_basic oder ?paket=lkw_premium)
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const params = new URLSearchParams(window.location.search);
-    const paket = params.get('paket') as PaketTyp | null;
-    if (paket && paket in PKW_PAKETE) {
-      dispatch({ type: 'SET_PKW_PAKET', value: paket });
+    const paket = params.get('paket');
+    if (!paket) return;
+    if (paket in PKW_PAKETE) {
+      dispatch({ type: 'SET_FAHRZEUG', gruppe: 'pkw', zuschlag: 'pkw' });
+      dispatch({ type: 'SET_PKW_PAKET', value: paket as PaketTyp });
+      dispatch({ type: 'WEITER' }); // 1 -> 2
+      dispatch({ type: 'WEITER' }); // 2 -> 3 (Aufpreise)
+    } else if (paket in LKW_PAKETE) {
+      dispatch({ type: 'SET_FAHRZEUG', gruppe: 'lkw', zuschlag: 'pkw' });
+      dispatch({ type: 'SET_LKW_PAKET', value: paket as LkwPaketTyp });
       dispatch({ type: 'WEITER' }); // 1 -> 2
       dispatch({ type: 'WEITER' }); // 2 -> 3 (Aufpreise)
     }
@@ -705,6 +723,39 @@ export default function PriceCalculator({ calLink, calLinks = {}, telefon, email
               </div>
             </div>
           </button>
+        </div>
+
+        {/* Spezial-Aufpreise (Hygiene / Sonderzustände) */}
+        <div>
+          <p className="text-sm font-bold text-zinc-400 uppercase tracking-widest mb-1">Sonderfälle</p>
+          <p className="text-xs text-zinc-500 mb-3">Mehrfachauswahl möglich · besonders bei Nutzfahrzeugen häufig</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {([
+              { key: 'maeusekot',            label: 'Mäusekot / Nagerbefall', preis: '+45 €', sub: 'Hygiene + Desinfektion' },
+              { key: 'extremeVerschmutzung', label: 'Extreme Verschmutzung',  preis: '+30 €', sub: 'Eingearbeiteter Schlamm/Dreck' },
+              { key: 'schimmel',             label: 'Schimmel / Feuchtigkeit', preis: '+40 €', sub: 'Spezialreinigung + Geruchsneutralisation' },
+              { key: 'lebensmittel',         label: 'Lebensmittel- / Bioabfall-Reste', preis: '+25 €', sub: 'Organische Rückstände, Geruchsbehandlung' },
+            ] as { key: SpezialKey; label: string; preis: string; sub: string }[]).map((opt) => {
+              const aktiv = s.spezial[opt.key];
+              return (
+                <button
+                  key={opt.key}
+                  onClick={() => dispatch({ type: 'TOGGLE_SPEZIAL', key: opt.key })}
+                  className={`text-left rounded-xl p-4 border transition-all duration-200 cursor-pointer ${aktiv ? 'bg-amber-500/15 border-amber-500/60' : 'bg-zinc-900/60 border-zinc-700/50 hover:border-amber-500/40 hover:bg-zinc-800/80'}`}
+                >
+                  <div className="flex items-start gap-3">
+                    <div className={`w-5 h-5 mt-0.5 rounded border-2 flex items-center justify-center transition-colors shrink-0 ${aktiv ? 'bg-amber-500 border-amber-500' : 'border-zinc-600'}`}>
+                      {aktiv && <svg className="w-3 h-3 text-zinc-900" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="font-bold text-zinc-100 text-sm">{opt.label} <span className="text-amber-400 ml-1">{opt.preis}</span></p>
+                      <p className="text-xs text-zinc-500 mt-0.5">{opt.sub}</p>
+                    </div>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
         </div>
       </div>
 
@@ -935,6 +986,10 @@ export default function PriceCalculator({ calLink, calLinks = {}, telefon, email
           if (s.tierhaare !== 'keine') aufpreisTexte.push(`Tierhaare ${s.tierhaare}`);
           if (s.kindersitze > 0) aufpreisTexte.push(`${s.kindersitze} Kindersitz${s.kindersitze > 1 ? 'e' : ''}`);
           if (s.nikotin) aufpreisTexte.push('Nikotingeruch');
+          if (s.spezial.maeusekot) aufpreisTexte.push('Mäusekot/Nagerbefall');
+          if (s.spezial.extremeVerschmutzung) aufpreisTexte.push('Extreme Verschmutzung');
+          if (s.spezial.schimmel) aufpreisTexte.push('Schimmel/Feuchtigkeit');
+          if (s.spezial.lebensmittel) aufpreisTexte.push('Lebensmittel-/Bioabfall-Reste');
           const notiz = [
             `Leistung: ${paketName}`,
             s.reinigungsort === 'beiuns' ? 'Bei uns in Cloppenburg' : 'Vor Ort beim Kunden',

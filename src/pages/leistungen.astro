@@ -2,8 +2,9 @@
 import BaseLayout from '../layouts/BaseLayout.astro';
 import { PKW_PAKETE, type PaketTyp } from '../data/preise';
 import { PAKET_DETAILS } from '../data/paket-details';
-import { TIERHAARE, KINDERSITZ_PRO_STUECK, NIKOTIN, FAHRZEUG_ZUSCHLAG } from '../data/aufpreise';
-import { LKW_PAKETE } from '../data/lkw';
+import { TIERHAARE, KINDERSITZ_PRO_STUECK, NIKOTIN, MAEUSEKOT, EXTREME_VERSCHMUTZUNG, SCHIMMEL, LEBENSMITTEL, FAHRZEUG_ZUSCHLAG } from '../data/aufpreise';
+import { LKW_PAKETE, type LkwPaketTyp } from '../data/lkw';
+import { LKW_PAKET_DETAILS } from '../data/paket-details';
 import BeforeAfterSlider from '../components/BeforeAfterSlider';
 
 function eur(n: number) {
@@ -11,6 +12,7 @@ function eur(n: number) {
 }
 
 const detailHref = (key: PaketTyp) => `/leistungen/${PAKET_DETAILS[key].slug}`;
+const lkwDetailHref = (key: LkwPaketTyp) => `/leistungen/${LKW_PAKET_DETAILS[key].slug}`;
 
 const fahrkostenTabelle = [
   { km: 5, kosten: 0 },
@@ -178,6 +180,26 @@ const fahrkostenTabelle = [
               <td class="px-4 py-3 text-right font-bold text-amber-400">+{eur(NIKOTIN)}</td>
             </tr>
             <tr class="border-t border-zinc-800 bg-zinc-900/40 hover:bg-zinc-800/50 transition-colors">
+              <td class="px-4 py-3 font-semibold text-zinc-100">Mäusekot / Nagerbefall</td>
+              <td class="px-4 py-3 text-zinc-400 text-xs">Hygienereinigung inkl. Desinfektion. Besonders bei Nutzfahrzeugen und Anhängern.</td>
+              <td class="px-4 py-3 text-right font-bold text-amber-400">+{eur(MAEUSEKOT)}</td>
+            </tr>
+            <tr class="border-t border-zinc-800 hover:bg-zinc-800/50 transition-colors">
+              <td class="px-4 py-3 font-semibold text-zinc-100">Extreme Verschmutzung</td>
+              <td class="px-4 py-3 text-zinc-400 text-xs">Eingearbeiteter Schlamm/Dreck, mehrfacher Reinigungsdurchgang.</td>
+              <td class="px-4 py-3 text-right font-bold text-amber-400">+{eur(EXTREME_VERSCHMUTZUNG)}</td>
+            </tr>
+            <tr class="border-t border-zinc-800 bg-zinc-900/40 hover:bg-zinc-800/50 transition-colors">
+              <td class="px-4 py-3 font-semibold text-zinc-100">Schimmel / Feuchtigkeit</td>
+              <td class="px-4 py-3 text-zinc-400 text-xs">Spezialreinigung + Geruchsneutralisation.</td>
+              <td class="px-4 py-3 text-right font-bold text-amber-400">+{eur(SCHIMMEL)}</td>
+            </tr>
+            <tr class="border-t border-zinc-800 hover:bg-zinc-800/50 transition-colors">
+              <td class="px-4 py-3 font-semibold text-zinc-100">Lebensmittel- / Bioabfall-Reste</td>
+              <td class="px-4 py-3 text-zinc-400 text-xs">Verdorbenes Essen, organische Rückstände, Geruchsbehandlung.</td>
+              <td class="px-4 py-3 text-right font-bold text-amber-400">+{eur(LEBENSMITTEL)}</td>
+            </tr>
+            <tr class="border-t border-zinc-800 bg-zinc-900/40 hover:bg-zinc-800/50 transition-colors">
               <td class="px-4 py-3 font-semibold text-zinc-100">SUV (Q5, X3, Tiguan …)</td>
               <td class="px-4 py-3 text-zinc-400">+{Math.round(FAHRZEUG_ZUSCHLAG.suv * 100)} % auf Paket</td>
               <td class="px-4 py-3 text-right font-bold text-amber-400">+{Math.round(FAHRZEUG_ZUSCHLAG.suv * 100)} %</td>
@@ -231,7 +253,7 @@ const fahrkostenTabelle = [
       <p class="text-zinc-400 text-sm mb-1">
         Aktuell nur <strong class="text-zinc-200">Innenraum-Aufbereitung</strong>. Außenwäsche ist in Planung.
       </p>
-      <p class="text-zinc-500 text-xs mb-4">Stundensatz 20 €/h netto, Materialpauschale 3 €/h, Mindestpauschale 40 € netto · Anfahrt wie bei PKW.</p>
+      <p class="text-zinc-500 text-xs mb-4">Stundensatz 30 €/h netto, Materialpauschale 3 €/h, Mindestpauschale 50 € netto · Anfahrt wie bei PKW.</p>
       <div class="bg-zinc-900/70 backdrop-blur-sm rounded-xl border border-zinc-800/70 overflow-hidden">
         <table class="w-full text-sm">
           <thead class="bg-zinc-800/80 text-zinc-300">
@@ -239,16 +261,25 @@ const fahrkostenTabelle = [
               <th class="text-left px-4 py-3 font-semibold">Leistung</th>
               <th class="text-left px-4 py-3 font-semibold">Dauer</th>
               <th class="text-right px-4 py-3 font-semibold">Preis (brutto)</th>
+              <th class="px-2 py-3"></th>
             </tr>
           </thead>
           <tbody>
-            {(Object.entries(LKW_PAKETE) as [string, typeof LKW_PAKETE[keyof typeof LKW_PAKETE]][]).map(([, paket], i) => (
-              <tr class={`border-t border-zinc-800 hover:bg-zinc-800/50 transition-colors ${i % 2 === 1 ? 'bg-zinc-900/40' : ''}`}>
-                <td class="px-4 py-3 font-semibold text-zinc-100">{paket.name}</td>
-                <td class="px-4 py-3 text-zinc-400">{paket.dauer}</td>
-                <td class="px-4 py-3 text-right font-bold text-amber-400">{eur(paket.bruttoPreis)}</td>
-              </tr>
-            ))}
+            {(Object.keys(LKW_PAKETE) as LkwPaketTyp[]).map((key, i) => {
+              const paket = LKW_PAKETE[key];
+              return (
+                <tr class={`paket-row border-t border-zinc-800 cursor-pointer transition-all duration-150 ${i % 2 === 1 ? 'bg-zinc-900/40' : ''}`} data-href={lkwDetailHref(key)}>
+                  <td class="px-4 py-3 font-semibold text-zinc-100">{paket.name}</td>
+                  <td class="px-4 py-3 text-zinc-400">{paket.dauer}</td>
+                  <td class="px-4 py-3 text-right font-bold text-amber-400">{eur(paket.bruttoPreis)}</td>
+                  <td class="px-3 py-3 text-right">
+                    <span class="paket-chevron inline-flex items-center justify-center w-8 h-8 rounded-full border border-zinc-700 text-zinc-500 transition-all">
+                      <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
+                    </span>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>

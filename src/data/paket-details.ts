@@ -1,4 +1,5 @@
 import type { PaketTyp } from './preise';
+import type { LkwPaketTyp } from './lkw';
 
 export interface ProduktEinsatz {
   name: string;
@@ -573,6 +574,462 @@ export const PAKET_DETAILS: Record<PaketTyp, PaketDetail> = {
     ],
     hinweise: [
       'Bei stark verschmutzten Fahrzeugen kann der Termin auf zwei Tage verteilt werden – wir besprechen das vorab.',
+    ],
+  },
+};
+
+// ── Nutzfahrzeug-spezifische FAQs ───────────────────────────────────────────
+const FAQ_NF_AUSRAEUMEN: PaketFAQ = {
+  frage: 'Muss ich Werkzeug, Papiere und Ladegut vorher aus der Kabine räumen?',
+  antwort:
+    'Ja, bitte. Werkzeug, Bordbuch, Tachoscheiben und persönliche Dinge nehmen Sie am besten vorher heraus – das schützt Ihre Sachen und wir kommen besser an alle Ecken. Was unsicher ist (lose Münzen, Stempel, Tankquittungen), legen wir in eine kleine Box auf den Beifahrersitz, damit nichts verloren geht.',
+};
+
+const FAQ_NF_HOF: PaketFAQ = {
+  frage: 'Können Sie auch auf unserem Betriebshof aufbereiten?',
+  antwort:
+    'Sehr gerne. Auf dem Betriebshof ist es für beide Seiten am einfachsten – wir kommen mit Anhänger + Wasser/Strom-Eigenversorgung. Bei mehreren Fahrzeugen vor Ort gibt es ab 3 Fahrzeugen einen Mengenrabatt von 10 % auf die Endsumme.',
+};
+
+const FAQ_NF_MAEUSEKOT: PaketFAQ = {
+  frage: 'Wir haben Mäusekot in der Kabine – ist das ein Problem?',
+  antwort:
+    'Kein Problem, das ist bei längerer Standzeit (Saisontraktor, Wochenend-LKW) leider keine Seltenheit. Wir reinigen mit Schutzausrüstung und Desinfektionsmittel – Aufpreis 45 € für die zusätzliche Hygienebehandlung. Sagen Sie uns vorher Bescheid, dann nehmen wir das richtige Material mit.',
+};
+
+const FAQ_NF_GERUCH: PaketFAQ = {
+  frage: 'Bekommen Sie Diesel-, Schweiß- oder Tierhaltergeruch raus?',
+  antwort:
+    'Bei Premium und Full Detail in den meisten Fällen ja – wir arbeiten mit Polster-Tiefenreinigung und Geruchsneutralisator. Bei sehr starkem oder eingelebtem Geruch (Jahrzehnte alter LKW, Tiertransporter) empfehlen wir zusätzlich Full Detail oder eine Ozonbehandlung. Wir besprechen das vor Auftragsbeginn offen mit Ihnen.',
+};
+
+const FAQ_NF_DOWNTIME: PaketFAQ = {
+  frage: 'Wie lange steht mein Fahrzeug?',
+  antwort:
+    'Reine Arbeitszeit + ca. 30–60 Minuten Trocknung bei den Premium-/Full-Detail-Paketen (Polster nass behandelt). Wir terminieren am besten in eine planbare Standzeit (Wochenende, Wartungstag) – sprechen Sie uns an, wir richten uns nach Ihrem Einsatzplan.',
+};
+
+const FAQ_NF_RECHNUNG: PaketFAQ = {
+  frage: 'Bekomme ich eine ordentliche Firmenrechnung mit ausgewiesener MwSt.?',
+  antwort:
+    'Selbstverständlich. Sie erhalten eine §14 UStG-konforme Rechnung mit unserer Steuernummer / USt-IdNr. – per E-Mail als PDF, gerne auch ausgedruckt mit dem Fahrzeug zusammen.',
+};
+
+// ── LKW / Traktor / Transporter – Detailseiten ──────────────────────────────
+export const LKW_PAKET_DETAILS: Record<LkwPaketTyp, PaketDetail> = {
+
+  // ────────────────────────────────────────────────────────────────────────────
+  lkw_basic: {
+    slug: 'lkw-basic',
+    kurzbeschreibung:
+      'Sicht­auffrischung für die Fahrerkabine: aussaugen, Armaturen entstauben, Scheiben innen. Das richtige Paket vor der Vorführung beim TÜV oder bei wenig Zeit zwischen zwei Touren.',
+    enthalten: [
+      'Komplettes Aussaugen Fahrer-/Beifahrerbereich + Boden',
+      'Armaturen und Mittelkonsole feucht abwischen',
+      'Lenkrad, Schalthebel, Türgriffe reinigen',
+      'Scheiben innen streifenfrei',
+      'Fußmatten ausklopfen und aussaugen',
+      'Liegeplatte oberflächlich (sofern vorhanden, keine Polsterbehandlung)',
+    ],
+    geeignet_fuer: [
+      'Vor TÜV / SP / UVV-Vorführung – sauberer Eindruck im Cockpit',
+      'Zwischenreinigung bei Fahrerwechsel',
+      'Wenn Zeit knapp ist, aber der Wagen wieder „präsentabel" wirken soll',
+    ],
+    produkte: [
+      { name: 'Koch Chemie Top Star',           wofuer: 'Innenraumreiniger für Armaturen, Kunststoff und Türverkleidungen – ohne Glanzbildung, daher rutschsicher am Lenkrad.' },
+      { name: 'Koch Chemie Plast Star',         wofuer: 'Kunststoffpflege für Armaturenträger und Türverkleidungen – matter Auffrischer, kein „Plastik-Look".' },
+      { name: 'Glasreiniger',                   wofuer: 'Streifenfrei für die großen Frontscheiben, auch bei Sonneneinstrahlung.' },
+      { name: 'Mikrofasertücher (mehrere)',     wofuer: 'Getrennt für Armaturen, Glas und Lenkrad – keine Kreuzkontamination.' },
+    ],
+    geraete: [
+      'Profi-Werkstattsauger mit langer Düse für Spalten',
+      'Druckluft-Bläser für Lüftungsschlitze und Schalter',
+      'Mikrofasertücher in vier Farben (Bereichstrennung)',
+    ],
+    ablauf: [
+      { titel: 'Vorbereitung & Sichtprüfung', beschreibung: 'Wir gehen die Kabine mit Ihnen kurz durch: lose Sachen, sensible Bereiche, Tachoscheiben. Fußmatten raus, Sitze in Reinigungsposition.' },
+      { titel: 'Aussaugen', beschreibung: 'Komplette Saugarbeit: Sitzritzen, Boden, Liegeplatte, Fußraum, Pedalbereich, hinter den Sitzen. Mit der langen Düse auch zwischen Sitz und Konsole.' },
+      { titel: 'Armaturen & Bedienelemente', beschreibung: 'Cockpit feucht abwischen, Lenkrad und Schaltgriff entfetten, Türgriffe und Bedienelemente einzeln nachreinigen.' },
+      { titel: 'Scheiben innen', beschreibung: 'Front-, Seiten- und Heckscheibe innen mit Glasreiniger und Profi-Tuch – streifenfrei und ohne Schlieren.' },
+      { titel: 'Endkontrolle', beschreibung: 'Gemeinsame Endabnahme. Fußmatten zurück, Sitze in Fahrposition, Schlüssel zurück.' },
+    ],
+    voraussetzungen: {
+      wasser: 'wir',
+      strom: 'optional',
+      platz: 'Ebener Stand auf Hof, Werkstatt oder Parkplatz. Wir brauchen nur Platz, um die Türen weit zu öffnen.',
+      hinweis: 'Wir kommen sehr gerne auf Ihren Betriebshof. Strom ist für Basic nicht zwingend nötig – ein 220V-Anschluss in der Nähe ist nice-to-have, kein Muss.',
+    },
+    faqs: [
+      FAQ_DAUER('1,5 Std.'),
+      FAQ_NF_AUSRAEUMEN,
+      FAQ_NF_HOF,
+      FAQ_NF_RECHNUNG,
+      FAQ_ZAHLUNG,
+    ],
+  },
+
+  // ────────────────────────────────────────────────────────────────────────────
+  lkw_premium: {
+    slug: 'lkw-premium',
+    kurzbeschreibung:
+      'Die gründliche Innenaufbereitung der Fahrerkabine: alles aus Basic plus Polster- und Teppichreinigung, Armaturenpflege, Liegeplatte. Das passende Paket nach längerer Strecke oder Fahrerwechsel.',
+    enthalten: [
+      'Alles aus Basic (Aussaugen, Armaturen, Scheiben)',
+      'Sitzpolster reinigen (Stoff oder Kunstleder, je nach Ausstattung)',
+      'Türverkleidungen tief reinigen',
+      'Liegeplatte aufbereiten inkl. Matratzenoberfläche',
+      'Bodenmatten und Teppichbereiche shampoonieren',
+      'Lüftungslamellen entstauben',
+      'Geruchsneutralisierung mit Frische-Spray',
+    ],
+    geeignet_fuer: [
+      'Nach längerer Tour / Auslandsfahrt',
+      'Bei Fahrerwechsel – der neue Fahrer übernimmt ein „frisches" Cockpit',
+      'Vor wichtigen Kundenterminen, bei denen Sie den LKW vorfahren',
+    ],
+    produkte: [
+      { name: 'Koch Chemie Top Star',           wofuer: 'Universal-Innenraumreiniger für Kunststoffe, Türverkleidungen und Armaturen.' },
+      { name: 'Koch Chemie Pol Star',           wofuer: 'Polsterreiniger für Sitze, Liegeplatte und Bodenmatten – mit Sprühextraktor in den Stoff einarbeiten.' },
+      { name: 'Koch Chemie Leather Star',       wofuer: 'Lederpflege für Kunstleder-Sitzbezüge und Lenkradkränze – reinigt und konserviert in einem Schritt.' },
+      { name: 'Koch Chemie Plast Star',         wofuer: 'Matte Pflege für Armaturenträger und Türverkleidungen.' },
+      { name: 'Glasreiniger',                   wofuer: 'Streifenfrei für alle Scheiben innen.' },
+      { name: 'Geruchsneutralisator',           wofuer: 'Bindet Geruchsmoleküle statt sie nur zu überdecken – frischer Cockpitgeruch ohne aufdringliches Parfum.' },
+    ],
+    geraete: [
+      'Profi-Werkstattsauger',
+      'Sprühextraktor für Polster (einsprühen → einwirken → wieder absaugen)',
+      'Druckluft-Bläser für Lüftungen und Schalter',
+      'Bürsten in 3 Härtegraden für Polsterstoff',
+      'Mikrofasertücher in vier Farben',
+    ],
+    ablauf: [
+      { titel: 'Vorbereitung & Sichtprüfung', beschreibung: 'Wir gehen die Kabine mit Ihnen durch, fotografieren auf Wunsch den Ausgangszustand und besprechen empfindliche Stellen.' },
+      { titel: 'Vorreinigung', beschreibung: 'Grobschmutz raus, Fußmatten heraus, Sitze in Reinigungsposition.' },
+      { titel: 'Aussaugen (gründlich)', beschreibung: 'Sitzritzen, Liegeplatte unter der Matratze, Fußraum, hinter den Sitzen, Ablagefächer.' },
+      { titel: 'Polster-Behandlung', beschreibung: 'Sitze und Liegeplatte mit Pol Star und Sprühextraktor: einsprühen, einwirken, wieder absaugen. Mehrere Durchgänge bis das aufgenommene Wasser klar bleibt.' },
+      { titel: 'Türverkleidungen & Armaturen', beschreibung: 'Vom Himmel abwärts: Türverkleidung, Mittelkonsole, Schalter, Lüftungslamellen, Becherhalter.' },
+      { titel: 'Lederpflege', beschreibung: 'Lenkrad, Schaltknauf, ggf. Sitzbezüge mit Leather Star nachpflegen.' },
+      { titel: 'Scheiben & Endkontrolle', beschreibung: 'Scheiben innen streifenfrei. Gemeinsame Endabnahme – Sie sitzen einmal Probe.' },
+    ],
+    voraussetzungen: {
+      wasser: 'wir',
+      strom: 'noetig',
+      platz: 'Ebener Stellplatz, Türen müssen weit auf. Idealerweise eine Halle oder ein Carport für Wetterschutz – wir können aber auch im Freien arbeiten.',
+      hinweis: 'Für den Sprühextraktor brauchen wir eine 220V-Steckdose in der Nähe. Verlängerung haben wir dabei. Wenn keine Steckdose erreichbar ist, sagen Sie uns vorher Bescheid – wir bringen einen Generator mit.',
+    },
+    faqs: [
+      FAQ_DAUER('3 Std.'),
+      FAQ_NF_DOWNTIME,
+      FAQ_NF_AUSRAEUMEN,
+      FAQ_NF_GERUCH,
+      FAQ_NF_HOF,
+      FAQ_NF_RECHNUNG,
+      FAQ_ZAHLUNG,
+    ],
+  },
+
+  // ────────────────────────────────────────────────────────────────────────────
+  lkw_detail: {
+    slug: 'lkw-full-detail',
+    kurzbeschreibung:
+      'Die komplette Kabinen-Aufbereitung – alles aus Premium plus Dampfreinigung, Polster-Sprühextraktion in mehreren Durchgängen und gezielte Geruchsneutralisierung. Das richtige Paket vor Verkauf, Übergabe oder nach langer Standzeit.',
+    enthalten: [
+      'Alles aus Premium (Polster, Türen, Armaturen, Leder)',
+      'Dampfreinigung Polster, Lüftungen und Fugen',
+      'Polster-Sprühextraktion in mehreren Durchgängen',
+      'Liegeplatte und Matratze tief aufbereiten',
+      'Sicherheitsgurte einzeln reinigen',
+      'Himmel reinigen (Vorsicht bei Stoff)',
+      'Gezielte Geruchsneutralisierung an der Quelle (nicht nur Spray)',
+      'Sonderaufpreis Mäusekot / Schimmel / Lebensmittelreste auf Wunsch',
+    ],
+    geeignet_fuer: [
+      'Vor dem Verkauf oder der Übergabe an den Käufer',
+      'Nach jahrelanger Nutzung oder Fahrerwechsel-Mehrfach-Belegung',
+      'Wenn Geruch (Diesel, Nikotin, Tier) tief im Stoff sitzt',
+      'Nach längerer Standzeit – Saisonbetrieb, Reservefahrzeug',
+    ],
+    produkte: [
+      { name: 'Koch Chemie Top Star',           wofuer: 'Universal-Innenraumreiniger als Basis.' },
+      { name: 'Koch Chemie Pol Star',           wofuer: 'Polsterreinigung tief – mit Sprühextraktor in den Stoff einarbeiten, mehrere Durchgänge.' },
+      { name: 'Koch Chemie Leather Star',       wofuer: 'Lederpflege für Sitze, Lenkrad, Schaltknauf.' },
+      { name: 'Koch Chemie Glass Cleaner',      wofuer: 'Streifenfrei für alle Scheiben innen.' },
+      { name: 'Geruchsneutralisator (professionell)', wofuer: 'Bindet Moleküle, ersetzt sie nicht nur. Wirkung hält Wochen.' },
+      { name: 'Desinfektionsreiniger',          wofuer: 'Für Lenkrad, Türgriffe, Schalter – Hygienestufe nach Bedarf.' },
+    ],
+    geraete: [
+      'Profi-Werkstattsauger',
+      'Sprühextraktor für Polster (mehrere Durchgänge)',
+      'Profi-Dampfreiniger (löst tief sitzenden Schmutz in Polster und Lüftungen)',
+      'Druckluft-Bläser für Lüftungslamellen und Fugen',
+      'Polsterbürsten in 3 Härtegraden',
+      'Mikrofasertücher in vier Farben (Bereichstrennung)',
+    ],
+    ablauf: [
+      { titel: 'Bestandsaufnahme', beschreibung: 'Wir gehen die Kabine ausführlich mit Ihnen durch. Auf Wunsch Fotodokumentation des Ausgangszustands. Sonderzustände (Mäusekot, Schimmel, Lebensmittelreste) besprechen und mit passendem Aufpreis ansetzen.' },
+      { titel: 'Vorreinigung & Aussaugen', beschreibung: 'Grobschmutz, Bodenmatten heraus, Fußraum und alle Ablagen leeren. Komplette Saugarbeit inkl. unter der Liegeplatte.' },
+      { titel: 'Dampfreinigung', beschreibung: 'Lüftungen, Fugen, Spalten, Schalter, Türholme und Pedale werden mit Heißdampf gereinigt – löst Fett und Schmutz, der mit Tuch unerreichbar ist.' },
+      { titel: 'Polster Sprühextraktion', beschreibung: 'Sitze, Liegeplatte und Bodenmatten mit Pol Star + Sprühextraktor in mehreren Durchgängen. Wir machen weiter, bis das aufgenommene Wasser wieder klar ist.' },
+      { titel: 'Himmel & Säulen', beschreibung: 'Vorsichtige Reinigung des Dachhimmels – kein Druck auf den Schaumkern, damit sich nichts ablöst.' },
+      { titel: 'Gurte & Detail-Bereiche', beschreibung: 'Sicherheitsgurte einzeln herausziehen und reinigen. Becherhalter, Aschenbecher, Türablagen – jede Ecke.' },
+      { titel: 'Leder & Cockpit', beschreibung: 'Lenkrad, Schaltknauf und Lederbezüge mit Leather Star nachpflegen.' },
+      { titel: 'Geruchsbehandlung', beschreibung: 'An der Quelle: Polster gezielt mit Geruchsneutralisator. Bei sehr starken Fällen Ozonbehandlung als Sonderaufpreis.' },
+      { titel: 'Scheiben & Endkontrolle', beschreibung: 'Alle Scheiben innen streifenfrei. Gemeinsame Endabnahme mit Ihnen.' },
+    ],
+    voraussetzungen: {
+      wasser: 'wir',
+      strom: 'noetig',
+      platz: 'Ebener Stellplatz mit weit zu öffnenden Türen. Halle oder Carport ist ideal (Wetter, Trocknung), Freiluft geht auch.',
+      hinweis: '220V-Steckdose Pflicht – Sprühextraktor und Dampfreiniger sind starke Geräte. Wenn am Stellplatz keine Steckdose erreichbar ist, sagen Sie uns vorher Bescheid, dann bringen wir einen Generator mit.',
+    },
+    faqs: [
+      FAQ_DAUER('5 Std.'),
+      FAQ_NF_DOWNTIME,
+      FAQ_NF_MAEUSEKOT,
+      FAQ_NF_GERUCH,
+      FAQ_NF_AUSRAEUMEN,
+      FAQ_NF_HOF,
+      FAQ_NF_RECHNUNG,
+      FAQ_ZAHLUNG,
+    ],
+    hinweise: [
+      'Bei extrem verlebten oder kontaminierten Kabinen (z. B. Mäusekot großflächig, starker Schimmel) kann der Termin auf zwei Tage verteilt werden – wir besprechen das vorher.',
+    ],
+  },
+
+  // ────────────────────────────────────────────────────────────────────────────
+  traktor_basic: {
+    slug: 'traktor-basic',
+    kurzbeschreibung:
+      'Sichtbare Auffrischung der Traktorkabine: aussaugen, Armaturen entstauben, Scheiben innen. Ideal nach Erntearbeit oder vor der Vorführung.',
+    enthalten: [
+      'Komplettes Aussaugen Boden, Sitz, Beifahrer-Notsitz',
+      'Armaturen, Lenkrad, Joystick und Bedienpanels feucht abwischen',
+      'Scheiben innen rundum streifenfrei (Front, Heck, Seiten, Dach falls verglast)',
+      'Fußmatten ausklopfen und aussaugen',
+      'Türrahmen und Dichtungen reinigen',
+    ],
+    geeignet_fuer: [
+      'Nach Erntesaison – Staub und Erntereste raus',
+      'Vor TÜV / Vorführung beim Händler',
+      'Vor Verkauf einer kürzlichen Maschine',
+    ],
+    produkte: [
+      { name: 'Koch Chemie Top Star',           wofuer: 'Innenraumreiniger für die typische Mischung aus Staub, Schmieröl und Fett auf Armaturen.' },
+      { name: 'Koch Chemie Plast Star',         wofuer: 'Kunststoffpflege für Armaturenträger und Verkleidungen – matt, nicht glänzend (rutschsicher).' },
+      { name: 'Glasreiniger',                   wofuer: 'Streifenfrei für die typisch großen Traktor-Verglasungen.' },
+      { name: 'Mikrofasertücher (mehrere)',     wofuer: 'Getrennt für Armaturen, Glas und Lenkrad.' },
+    ],
+    geraete: [
+      'Profi-Werkstattsauger',
+      'Druckluft-Bläser für Tasten, Bedienpanels und Lüftungsschlitze',
+      'Lange Sauger-Düse für Spalten unter dem Sitz',
+      'Mikrofasertücher in vier Farben',
+    ],
+    ablauf: [
+      { titel: 'Vorbereitung', beschreibung: 'Sichtprüfung, lose Werkzeuge und Papiere raus, Sitz in Reinigungsposition. Bei Drehsitz: in beide Endpositionen.' },
+      { titel: 'Aussaugen', beschreibung: 'Boden, Sitz, Notsitz, Ablagen, unter dem Sitz. Mit der langen Düse auch in die Bedienpanel-Fugen.' },
+      { titel: 'Armaturen & Bedienelemente', beschreibung: 'Cockpit komplett: Joystick, Schalthebel, Tasten, Bedienpanels, Sicherungsfach.' },
+      { titel: 'Druckluft für Fugen', beschreibung: 'Tasten, Schalter, Lüftungslamellen – mit Druckluft den Feinstaub austreiben, danach absaugen.' },
+      { titel: 'Scheiben innen', beschreibung: 'Alle Verglasungen innen (auch Dachscheibe falls vorhanden) – streifenfrei.' },
+      { titel: 'Endkontrolle', beschreibung: 'Gemeinsame Endabnahme.' },
+    ],
+    voraussetzungen: {
+      wasser: 'wir',
+      strom: 'optional',
+      platz: 'Ebener Stand, Tür/Stufe muss frei sein. Hof, Halle oder Feld-Rand – alles möglich.',
+      hinweis: 'Wir kommen sehr gerne direkt auf den Hof. Strom ist bei Basic nicht zwingend, aber ein Anschluss in der Nähe ist nice-to-have.',
+    },
+    faqs: [
+      FAQ_DAUER('1,5 Std.'),
+      FAQ_NF_AUSRAEUMEN,
+      FAQ_NF_HOF,
+      FAQ_NF_RECHNUNG,
+      FAQ_ZAHLUNG,
+    ],
+  },
+
+  // ────────────────────────────────────────────────────────────────────────────
+  traktor_premium: {
+    slug: 'traktor-premium',
+    kurzbeschreibung:
+      'Die gründliche Kabinen-Aufbereitung beim Traktor: alles aus Basic plus Polster- und Bodenmatten-Reinigung, Lüftungen, Türverkleidungen. Frische Kabine für die neue Saison.',
+    enthalten: [
+      'Alles aus Basic (Aussaugen, Armaturen, Scheiben)',
+      'Sitzpolster reinigen (Stoff oder Kunstleder)',
+      'Türverkleidungen / Innenseiten tief reinigen',
+      'Bodenmatten shampoonieren',
+      'Notsitz und Ablagen aufbereiten',
+      'Lüftungslamellen entstauben',
+      'Geruchsneutralisierung',
+    ],
+    geeignet_fuer: [
+      'Nach längerer Erntesaison',
+      'Vor neuer Saison (Frühjahrs-Frischekur)',
+      'Bei Fahrerwechsel auf dem Hof',
+    ],
+    produkte: [
+      { name: 'Koch Chemie Top Star',           wofuer: 'Universal-Innenraumreiniger.' },
+      { name: 'Koch Chemie Pol Star',           wofuer: 'Polsterreiniger für Sitz und Bodenmatten – Sprühextraktor sorgt für tiefe Reinigung.' },
+      { name: 'Koch Chemie Leather Star',       wofuer: 'Lederpflege für Lenkrad und Lederbezüge.' },
+      { name: 'Koch Chemie Plast Star',         wofuer: 'Matte Pflege für Armaturen und Verkleidungen.' },
+      { name: 'Glasreiniger',                   wofuer: 'Streifenfrei für alle Verglasungen.' },
+      { name: 'Geruchsneutralisator',           wofuer: 'Bindet Gerüche statt zu überdecken.' },
+    ],
+    geraete: [
+      'Profi-Werkstattsauger',
+      'Sprühextraktor für Polster',
+      'Druckluft-Bläser',
+      'Bürsten in 3 Härtegraden',
+      'Mikrofasertücher in vier Farben',
+    ],
+    ablauf: [
+      { titel: 'Vorbereitung', beschreibung: 'Sichtprüfung, lose Sachen raus, Sitz in Reinigungsposition. Bei Drehsitz beide Endpositionen.' },
+      { titel: 'Vorreinigung & Aussaugen', beschreibung: 'Grobschmutz raus, Bodenmatten heraus, komplettes Aussaugen inkl. Sitzritzen und Ablagen.' },
+      { titel: 'Polster Sprühextraktion', beschreibung: 'Sitz und Bodenmatten mit Pol Star + Sprühextraktor in mehreren Durchgängen.' },
+      { titel: 'Türen & Armaturen', beschreibung: 'Türverkleidungen, Konsole, Joystick, Tasten – jede Ecke mit passendem Mittel.' },
+      { titel: 'Lederpflege', beschreibung: 'Lenkrad und Lederbezüge mit Leather Star.' },
+      { titel: 'Lüftungen & Geruchsbehandlung', beschreibung: 'Lüftungslamellen entstauben, Geruchsneutralisator zielgerichtet.' },
+      { titel: 'Scheiben & Endkontrolle', beschreibung: 'Scheiben innen streifenfrei, gemeinsame Endabnahme.' },
+    ],
+    voraussetzungen: {
+      wasser: 'wir',
+      strom: 'noetig',
+      platz: 'Ebener Stand, Tür/Stufe frei. Halle ist ideal, geht aber auch im Freien bei trockenem Wetter.',
+      hinweis: 'Für den Sprühextraktor 220V-Steckdose Pflicht. Verlängerung haben wir dabei. Wenn keine Steckdose erreichbar ist, sagen Sie uns vorher Bescheid, dann bringen wir einen Generator mit.',
+    },
+    faqs: [
+      FAQ_DAUER('3 Std.'),
+      FAQ_NF_DOWNTIME,
+      FAQ_NF_AUSRAEUMEN,
+      FAQ_NF_GERUCH,
+      FAQ_NF_HOF,
+      FAQ_NF_RECHNUNG,
+      FAQ_ZAHLUNG,
+    ],
+  },
+
+  // ────────────────────────────────────────────────────────────────────────────
+  transporter_basic: {
+    slug: 'transporter-basic',
+    kurzbeschreibung:
+      'Innenreinigung Fahrerhaus + Aussaugen Laderaum: das passende Paket für Handwerker-Transporter, Lieferfahrzeuge und Wochenend-Reset.',
+    enthalten: [
+      'Komplettes Aussaugen Fahrer-/Beifahrerbereich',
+      'Armaturen, Lenkrad, Schalthebel reinigen',
+      'Scheiben innen streifenfrei',
+      'Fußmatten ausklopfen und aussaugen',
+      'Laderaum aussaugen und ausfegen',
+      'Trennwand/Trennnetz oberflächlich abwischen',
+    ],
+    geeignet_fuer: [
+      'Handwerker-Transporter – wöchentlicher Reset',
+      'Lieferfahrzeuge zwischen zwei Aufträgen',
+      'Vor Übergabe an einen Kollegen',
+    ],
+    produkte: [
+      { name: 'Koch Chemie Top Star',           wofuer: 'Innenraumreiniger für Armaturen.' },
+      { name: 'Koch Chemie Plast Star',         wofuer: 'Kunststoffpflege.' },
+      { name: 'Glasreiniger',                   wofuer: 'Streifenfrei für alle Scheiben.' },
+      { name: 'Mikrofasertücher (mehrere)',     wofuer: 'Getrennt für Bereiche.' },
+    ],
+    geraete: [
+      'Profi-Werkstattsauger mit langer Düse',
+      'Besen + Kehrblech für Laderaum-Vorreinigung',
+      'Druckluft-Bläser',
+      'Mikrofasertücher in vier Farben',
+    ],
+    ablauf: [
+      { titel: 'Vorbereitung', beschreibung: 'Sichtprüfung. Werkzeug, Material und persönliche Sachen aus dem Laderaum nehmen (so weit möglich).' },
+      { titel: 'Laderaum auskehren', beschreibung: 'Grobschmutz, Sägespäne, Verpackungsreste mit Besen raus, dann komplett aussaugen.' },
+      { titel: 'Fahrerhaus aussaugen', beschreibung: 'Sitze, Boden, Fußraum, Sitzritzen, hinter den Sitzen.' },
+      { titel: 'Armaturen & Bedienelemente', beschreibung: 'Cockpit feucht abwischen, Lenkrad und Schaltknauf entfetten.' },
+      { titel: 'Scheiben innen', beschreibung: 'Streifenfrei rundum, auch Heckklappenscheibe falls vorhanden.' },
+      { titel: 'Endkontrolle', beschreibung: 'Gemeinsame Endabnahme, Fußmatten zurück.' },
+    ],
+    voraussetzungen: {
+      wasser: 'wir',
+      strom: 'optional',
+      platz: 'Ebener Stellplatz, Heck-/Schiebetüren müssen sich frei öffnen lassen.',
+      hinweis: 'Strom ist für Basic nicht zwingend, aber praktisch. Wir kommen sehr gerne auf den Betriebshof.',
+    },
+    faqs: [
+      FAQ_DAUER('2 Std.'),
+      FAQ_NF_AUSRAEUMEN,
+      FAQ_NF_HOF,
+      FAQ_NF_RECHNUNG,
+      FAQ_ZAHLUNG,
+    ],
+    hinweise: [
+      'Bei stark verschmutztem Laderaum (Farbe, Kleber, Bauschutt) bitte vorher Bescheid geben – ggf. Aufpreis „Extreme Verschmutzung" 30 €.',
+    ],
+  },
+
+  // ────────────────────────────────────────────────────────────────────────────
+  transporter_premium: {
+    slug: 'transporter-premium',
+    kurzbeschreibung:
+      'Komplette Innenaufbereitung Fahrerhaus + Laderaum: Polsterbehandlung im Fahrerhaus, Laderaum gründlich, Trennwand-Aufbereitung. Vor Verkauf, nach langer Tour oder zur Frühjahrskur.',
+    enthalten: [
+      'Alles aus Basic (Aussaugen Fahrerhaus, Laderaum, Scheiben)',
+      'Sitzpolster reinigen (Sprühextraktion)',
+      'Türverkleidungen tief reinigen',
+      'Bodenmatten shampoonieren',
+      'Laderaumboden feucht aufbereiten',
+      'Trennwand/Trennnetz und Laderaumwände reinigen',
+      'Lüftungslamellen entstauben',
+      'Geruchsneutralisierung',
+    ],
+    geeignet_fuer: [
+      'Vor Verkauf oder Übergabe',
+      'Nach langer Auslandsfahrt / Auslieferungstour',
+      'Frühjahrskur für die Flotte',
+    ],
+    produkte: [
+      { name: 'Koch Chemie Top Star',           wofuer: 'Universal-Innenraumreiniger.' },
+      { name: 'Koch Chemie Pol Star',           wofuer: 'Polsterreiniger für Sitze und Bodenmatten.' },
+      { name: 'Koch Chemie Leather Star',       wofuer: 'Lederpflege.' },
+      { name: 'Koch Chemie Green Star',         wofuer: 'Universalreiniger für Laderaumboden und Trennwand.' },
+      { name: 'Glasreiniger',                   wofuer: 'Streifenfrei für alle Scheiben.' },
+      { name: 'Geruchsneutralisator',           wofuer: 'Bindet Gerüche.' },
+    ],
+    geraete: [
+      'Profi-Werkstattsauger',
+      'Sprühextraktor für Polster',
+      'Bürsten in 3 Härtegraden',
+      'Druckluft-Bläser',
+      'Mikrofasertücher in vier Farben',
+    ],
+    ablauf: [
+      { titel: 'Vorbereitung', beschreibung: 'Sichtprüfung, Werkzeug und Material aus Laderaum nehmen.' },
+      { titel: 'Laderaum vorbereiten', beschreibung: 'Auskehren, dann aussaugen. Trennwand/Trennnetz prüfen.' },
+      { titel: 'Fahrerhaus aussaugen', beschreibung: 'Komplette Saugarbeit inkl. Sitzritzen, Ablagen, unter den Sitzen.' },
+      { titel: 'Polster Sprühextraktion', beschreibung: 'Sitze und Bodenmatten mit Pol Star + Sprühextraktor.' },
+      { titel: 'Laderaum feucht', beschreibung: 'Laderaumboden mit Green Star + Bürste; Wände abwischen; Trennwand reinigen.' },
+      { titel: 'Türen & Armaturen', beschreibung: 'Türverkleidungen, Konsole, Schalter, Lüftungen.' },
+      { titel: 'Lederpflege & Cockpit', beschreibung: 'Lenkrad und Lederteile mit Leather Star.' },
+      { titel: 'Geruchsbehandlung', beschreibung: 'Geruchsneutralisator zielgerichtet ins Polster und in den Laderaum.' },
+      { titel: 'Scheiben & Endkontrolle', beschreibung: 'Scheiben innen streifenfrei, gemeinsame Endabnahme.' },
+    ],
+    voraussetzungen: {
+      wasser: 'wir',
+      strom: 'noetig',
+      platz: 'Ebener Stellplatz, Heck-/Schiebetüren frei öffenbar. Halle/Carport ideal, geht aber auch im Freien.',
+      hinweis: '220V-Steckdose Pflicht für Sprühextraktor. Verlängerung haben wir dabei. Wenn nicht erreichbar, vorher Bescheid geben – wir bringen einen Generator mit.',
+    },
+    faqs: [
+      FAQ_DAUER('3,5 Std.'),
+      FAQ_NF_DOWNTIME,
+      FAQ_NF_GERUCH,
+      FAQ_NF_MAEUSEKOT,
+      FAQ_NF_AUSRAEUMEN,
+      FAQ_NF_HOF,
+      FAQ_NF_RECHNUNG,
+      FAQ_ZAHLUNG,
+    ],
+    hinweise: [
+      'Bei extrem verschmutztem Laderaum (Farbe, Bauschutt eingearbeitet) kann ein Aufpreis „Extreme Verschmutzung" 30 € nötig sein – wir besprechen das vor Auftragsbeginn.',
     ],
   },
 };

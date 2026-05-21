@@ -2,33 +2,79 @@
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import { FIRMA } from '../../data/firma';
 import { PKW_PAKETE, type PaketTyp } from '../../data/preise';
-import { PAKET_DETAILS } from '../../data/paket-details';
+import { LKW_PAKETE, type LkwPaketTyp } from '../../data/lkw';
+import { PAKET_DETAILS, LKW_PAKET_DETAILS, type PaketDetail } from '../../data/paket-details';
 
 export const prerender = true;
 
+type Gruppe = 'pkw' | 'lkw';
+
+interface PaketBundle {
+  key: string;
+  name: string;
+  bruttoPreis: number;
+  dauer: string;
+  detail: PaketDetail;
+  gruppe: Gruppe;
+}
+
 export async function getStaticPaths() {
-  return (Object.entries(PAKET_DETAILS) as [PaketTyp, typeof PAKET_DETAILS[PaketTyp]][]).map(
+  const pkw = (Object.entries(PAKET_DETAILS) as [PaketTyp, PaketDetail][]).map(
     ([key, detail]) => ({
       params: { slug: detail.slug },
-      props: { paketKey: key },
+      props: {
+        key,
+        name: PKW_PAKETE[key].name,
+        bruttoPreis: PKW_PAKETE[key].bruttoPreis,
+        dauer: PKW_PAKETE[key].dauer,
+        detail,
+        gruppe: 'pkw' as Gruppe,
+      },
     })
   );
+
+  const lkw = (Object.entries(LKW_PAKET_DETAILS) as [LkwPaketTyp, PaketDetail][]).map(
+    ([key, detail]) => ({
+      params: { slug: detail.slug },
+      props: {
+        key,
+        name: LKW_PAKETE[key].name,
+        bruttoPreis: LKW_PAKETE[key].bruttoPreis,
+        dauer: LKW_PAKETE[key].dauer,
+        detail,
+        gruppe: 'lkw' as Gruppe,
+      },
+    })
+  );
+
+  return [...pkw, ...lkw];
 }
 
-interface Props {
-  paketKey: PaketTyp;
-}
-
-const { paketKey } = Astro.props;
-const paket = PKW_PAKETE[paketKey];
-const detail = PAKET_DETAILS[paketKey];
+const { key, name, bruttoPreis, dauer, detail, gruppe } = Astro.props as PaketBundle;
 
 const eur = (n: number) =>
   n.toLocaleString('de-DE', { style: 'currency', currency: 'EUR' });
 
-const andere = (Object.entries(PAKET_DETAILS) as [PaketTyp, typeof detail][])
-  .filter(([k]) => k !== paketKey)
-  .slice(0, 3);
+// "Andere Pakete" passend zur Gruppe
+const andere = gruppe === 'pkw'
+  ? (Object.entries(PAKET_DETAILS) as [PaketTyp, PaketDetail][])
+      .filter(([k]) => k !== key)
+      .slice(0, 3)
+      .map(([k, d]) => ({
+        slug: d.slug,
+        name: PKW_PAKETE[k].name,
+        bruttoPreis: PKW_PAKETE[k].bruttoPreis,
+        dauer: PKW_PAKETE[k].dauer,
+      }))
+  : (Object.entries(LKW_PAKET_DETAILS) as [LkwPaketTyp, PaketDetail][])
+      .filter(([k]) => k !== key)
+      .slice(0, 3)
+      .map(([k, d]) => ({
+        slug: d.slug,
+        name: LKW_PAKETE[k].name,
+        bruttoPreis: LKW_PAKETE[k].bruttoPreis,
+        dauer: LKW_PAKETE[k].dauer,
+      }));
 
 // Voraussetzungs-Badges
 const labels = {
@@ -41,11 +87,14 @@ const farben = {
   noetig: 'text-amber-300 bg-amber-500/10 border-amber-500/30',
 };
 
+const wo = gruppe === 'lkw' ? 'Vor Ort / Betriebshof' : 'Bei Ihnen vor Ort';
+const breadcrumbName = name;
+
 const serviceSchema = {
   '@context': 'https://schema.org',
   '@type': 'Service',
-  serviceType: paket.name,
-  name: `${paket.name} – ${FIRMA.name}`,
+  serviceType: name,
+  name: `${name} – ${FIRMA.name}`,
   description: detail.kurzbeschreibung,
   provider: {
     '@type': 'LocalBusiness',
@@ -61,7 +110,7 @@ const serviceSchema = {
   areaServed: FIRMA.einzugsgebiet,
   offers: {
     '@type': 'Offer',
-    price: paket.bruttoPreis,
+    price: bruttoPreis,
     priceCurrency: 'EUR',
     availability: 'https://schema.org/InStock',
   },
@@ -78,10 +127,10 @@ const faqSchema = {
   })),
 };
 
-const rechnerLink = `/preisrechner?paket=${paketKey}`;
+const rechnerLink = `/preisrechner?paket=${key}`;
 ---
 
-<BaseLayout title={paket.name} description={detail.kurzbeschreibung}>
+<BaseLayout title={name} description={detail.kurzbeschreibung}>
   <script type="application/ld+json" set:html={JSON.stringify(serviceSchema)} />
   <script type="application/ld+json" set:html={JSON.stringify(faqSchema)} />
 
@@ -97,26 +146,28 @@ const rechnerLink = `/preisrechner?paket=${paketKey}`;
           <span class="text-zinc-700">/</span>
           <a href="/leistungen" class="hover:text-amber-400 transition-colors">Leistungen</a>
           <span class="text-zinc-700">/</span>
-          <span class="text-zinc-300">{paket.name}</span>
+          <span class="text-zinc-300">{breadcrumbName}</span>
         </nav>
 
-        <p class="text-amber-400/80 text-xs font-semibold tracking-[0.22em] uppercase mb-3">Paket im Detail</p>
-        <h1 class="text-4xl sm:text-5xl font-black tracking-tighter text-zinc-100 mb-4">{paket.name}</h1>
+        <p class="text-amber-400/80 text-xs font-semibold tracking-[0.22em] uppercase mb-3">
+          {gruppe === 'lkw' ? 'Nutzfahrzeug · Paket im Detail' : 'Paket im Detail'}
+        </p>
+        <h1 class="text-4xl sm:text-5xl font-black tracking-tighter text-zinc-100 mb-4">{name}</h1>
         <p class="text-zinc-400 text-lg leading-relaxed max-w-2xl">{detail.kurzbeschreibung}</p>
 
         <div class="mt-8 flex flex-wrap items-baseline gap-x-6 gap-y-2">
           <div>
             <p class="text-zinc-500 text-xs uppercase tracking-wider mb-1">Preis</p>
-            <p class="text-3xl font-black text-amber-400 tabular-nums">{eur(paket.bruttoPreis)}</p>
+            <p class="text-3xl font-black text-amber-400 tabular-nums">{eur(bruttoPreis)}</p>
             <p class="text-zinc-600 text-xs">inkl. 19&nbsp;% MwSt.</p>
           </div>
           <div>
             <p class="text-zinc-500 text-xs uppercase tracking-wider mb-1">Dauer (ca.)</p>
-            <p class="text-2xl font-bold text-zinc-100">{paket.dauer}</p>
+            <p class="text-2xl font-bold text-zinc-100">{dauer}</p>
           </div>
           <div>
             <p class="text-zinc-500 text-xs uppercase tracking-wider mb-1">Wo</p>
-            <p class="text-2xl font-bold text-zinc-100">Bei Ihnen vor Ort</p>
+            <p class="text-2xl font-bold text-zinc-100">{wo}</p>
           </div>
         </div>
 
@@ -308,7 +359,7 @@ const rechnerLink = `/preisrechner?paket=${paketKey}`;
     <!-- CTA -->
     <section class="bg-zinc-950 py-20 sm:py-24 border-t border-zinc-900" style="background: radial-gradient(ellipse 80% 50% at 50% 0%, rgba(217,119,6,0.06) 0%, transparent 70%), #09090b;">
       <div class="max-w-2xl mx-auto px-4 sm:px-6 text-center">
-        <h2 class="text-3xl sm:text-4xl font-black tracking-tighter text-zinc-100 mb-3">Bereit für {paket.name}?</h2>
+        <h2 class="text-3xl sm:text-4xl font-black tracking-tighter text-zinc-100 mb-3">Bereit für {name}?</h2>
         <p class="text-zinc-400 mb-8 leading-relaxed">
           Wählen Sie direkt einen Termin – Festpreis, kostenlose Anfahrt bis 10&nbsp;km um {FIRMA.ort}.
         </p>
@@ -322,13 +373,15 @@ const rechnerLink = `/preisrechner?paket=${paketKey}`;
     <!-- Andere Pakete -->
     <section class="bg-zinc-950 py-16 border-t border-zinc-900">
       <div class="max-w-4xl mx-auto px-4 sm:px-6">
-        <h2 class="text-xl font-bold text-zinc-100 mb-6">Andere Pakete</h2>
+        <h2 class="text-xl font-bold text-zinc-100 mb-6">
+          {gruppe === 'lkw' ? 'Andere Nutzfahrzeug-Pakete' : 'Andere Pakete'}
+        </h2>
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          {andere.map(([k, d]) => (
-            <a href={`/leistungen/${d.slug}`} class="group block bg-zinc-900/50 hover:bg-zinc-900 border border-zinc-800 hover:border-amber-500/40 rounded-xl p-5 transition-all duration-200">
-              <p class="text-zinc-100 font-bold group-hover:text-amber-400 transition-colors">{PKW_PAKETE[k].name}</p>
-              <p class="text-amber-400 text-sm font-bold mt-1 tabular-nums">{eur(PKW_PAKETE[k].bruttoPreis)}</p>
-              <p class="text-zinc-500 text-xs mt-1">{PKW_PAKETE[k].dauer}</p>
+          {andere.map((a) => (
+            <a href={`/leistungen/${a.slug}`} class="group block bg-zinc-900/50 hover:bg-zinc-900 border border-zinc-800 hover:border-amber-500/40 rounded-xl p-5 transition-all duration-200">
+              <p class="text-zinc-100 font-bold group-hover:text-amber-400 transition-colors">{a.name}</p>
+              <p class="text-amber-400 text-sm font-bold mt-1 tabular-nums">{eur(a.bruttoPreis)}</p>
+              <p class="text-zinc-500 text-xs mt-1">{a.dauer}</p>
             </a>
           ))}
         </div>

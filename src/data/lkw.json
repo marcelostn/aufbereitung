@@ -1,14 +1,14 @@
 {
-  "stundensatz_netto": 20,
+  "stundensatz_netto": 30,
   "material_pro_stunde": 3,
-  "mindest_netto": 40,
+  "mindest_netto": 50,
   "pakete": [
-    { "key": "lkw_basic",          "name": "LKW Kabine Basic",          "stunden": 1.5, "bruttoPreis": 47.60, "dauer": "1,5 h" },
-    { "key": "lkw_premium",        "name": "LKW Kabine Premium",        "stunden": 3,   "bruttoPreis": 82.11, "dauer": "3 h" },
-    { "key": "lkw_detail",         "name": "LKW Kabine Full Detail",    "stunden": 4.5, "bruttoPreis": 123.17,"dauer": "4,5 h" },
-    { "key": "traktor_basic",      "name": "Traktor Kabine Basic",      "stunden": 1.5, "bruttoPreis": 47.60, "dauer": "1,5 h" },
-    { "key": "traktor_premium",    "name": "Traktor Kabine Premium",    "stunden": 3,   "bruttoPreis": 82.11, "dauer": "3 h" },
-    { "key": "transporter_basic",  "name": "Transporter Innen Basic",   "stunden": 2,   "bruttoPreis": 54.74, "dauer": "2 h" },
-    { "key": "transporter_premium","name": "Transporter Innen Premium", "stunden": 3.5, "bruttoPreis": 95.64, "dauer": "3,5 h" }
+    { "key": "lkw_basic",          "name": "LKW Kabine Basic",          "stunden": 1.5, "bruttoPreis": 59.99,  "dauer": "1,5 h" },
+    { "key": "lkw_premium",        "name": "LKW Kabine Premium",        "stunden": 3,   "bruttoPreis": 119.99, "dauer": "3 h" },
+    { "key": "lkw_detail",         "name": "LKW Kabine Full Detail",    "stunden": 5,   "bruttoPreis": 199.99, "dauer": "5 h" },
+    { "key": "traktor_basic",      "name": "Traktor Kabine Basic",      "stunden": 1.5, "bruttoPreis": 59.99,  "dauer": "1,5 h" },
+    { "key": "traktor_premium",    "name": "Traktor Kabine Premium",    "stunden": 3,   "bruttoPreis": 119.99, "dauer": "3 h" },
+    { "key": "transporter_basic",  "name": "Transporter Innen Basic",   "stunden": 2,   "bruttoPreis": 79.99,  "dauer": "2 h" },
+    { "key": "transporter_premium","name": "Transporter Innen Premium", "stunden": 3.5, "bruttoPreis": 139.99, "dauer": "3,5 h" }
   ]
 }

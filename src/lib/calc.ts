@@ -3,6 +3,10 @@ import {
   TIERHAARE,
   KINDERSITZ_PRO_STUECK,
   NIKOTIN,
+  MAEUSEKOT,
+  EXTREME_VERSCHMUTZUNG,
+  SCHIMMEL,
+  LEBENSMITTEL,
   FAHRZEUG_ZUSCHLAG,
   FREI_RADIUS_KM,
   KM_PREIS,
@@ -11,7 +15,14 @@ import {
 } from '../data/aufpreise';
 import { LKW_PAKETE, type LkwPaketTyp } from '../data/lkw';
 
-export interface PkwInput {
+export interface SpezialAufpreise {
+  maeusekot?: boolean;
+  extremeVerschmutzung?: boolean;
+  schimmel?: boolean;
+  lebensmittel?: boolean;
+}
+
+export interface PkwInput extends SpezialAufpreise {
   typ: 'pkw';
   paket: PaketTyp;
   fahrzeugZuschlag: FahrzeugZuschlagTyp;
@@ -21,7 +32,7 @@ export interface PkwInput {
   entfernungKm: number;
 }
 
-export interface LkwInput {
+export interface LkwInput extends SpezialAufpreise {
   typ: 'lkw';
   paket: LkwPaketTyp;
   tierhaare: TierhaarStufe;
@@ -48,6 +59,15 @@ function fahrtkosten(km: number): number {
 
 function runden(n: number): number {
   return Math.round(n * 100) / 100;
+}
+
+function spezialAufpreisPositionen(input: SpezialAufpreise): PreisPosition[] {
+  const out: PreisPosition[] = [];
+  if (input.maeusekot)            out.push({ bezeichnung: 'Aufpreis Mäusekot / Nagerbefall (Hygiene + Desinfektion)', betrag: MAEUSEKOT });
+  if (input.extremeVerschmutzung) out.push({ bezeichnung: 'Aufpreis Extreme Verschmutzung', betrag: EXTREME_VERSCHMUTZUNG });
+  if (input.schimmel)             out.push({ bezeichnung: 'Aufpreis Schimmel / Feuchtigkeit', betrag: SCHIMMEL });
+  if (input.lebensmittel)         out.push({ bezeichnung: 'Aufpreis Lebensmittel- / Bioabfall-Reste', betrag: LEBENSMITTEL });
+  return out;
 }
 
 export function berechnePreis(input: PreisInput): PreisErgebnis {
@@ -91,6 +111,8 @@ export function berechnePreis(input: PreisInput): PreisErgebnis {
       positionen.push({ bezeichnung: 'Aufpreis starker Nikotingeruch', betrag: NIKOTIN });
     }
 
+    positionen.push(...spezialAufpreisPositionen(input));
+
     const anfahrt = fahrtkosten(input.entfernungKm);
     if (anfahrt > 0) {
       positionen.push({ bezeichnung: 'Anfahrtskosten', betrag: anfahrt });
@@ -113,6 +135,8 @@ export function berechnePreis(input: PreisInput): PreisErgebnis {
     if (input.nikotin) {
       positionen.push({ bezeichnung: 'Aufpreis starker Nikotingeruch', betrag: NIKOTIN });
     }
+
+    positionen.push(...spezialAufpreisPositionen(input));
 
     const anfahrt = fahrtkosten(input.entfernungKm);
     if (anfahrt > 0) {

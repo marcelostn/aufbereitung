@@ -12,6 +12,10 @@ export const TIERHAARE: Record<TierhaarStufe, number> = {
 
 export const KINDERSITZ_PRO_STUECK = aufpreiseJson.kindersitz;
 export const NIKOTIN = aufpreiseJson.nikotin;
+export const MAEUSEKOT = aufpreiseJson.maeusekot;
+export const EXTREME_VERSCHMUTZUNG = aufpreiseJson.extreme_verschmutzung;
+export const SCHIMMEL = aufpreiseJson.schimmel;
+export const LEBENSMITTEL = aufpreiseJson.lebensmittel;
 
 export const FAHRZEUG_ZUSCHLAG: Record<FahrzeugZuschlagTyp, number> = {
   pkw: 0,
