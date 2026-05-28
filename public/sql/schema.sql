@@ -76,12 +76,14 @@ create table if not exists newsletter_subscriber (
   quelle            text default '',
   notiz             text default '',
   bestaetigt        boolean not null default false,
+  doi_token         text,                          -- random token für DOI-Bestätigungslink (NULL nach Bestätigung)
   created_at        timestamptz default now(),
   updated_at        timestamptz default now()
 );
 
 create index if not exists newsletter_email_idx on newsletter_subscriber(email);
 create index if not exists newsletter_bestaetigt_idx on newsletter_subscriber(bestaetigt);
+create index if not exists newsletter_doi_token_idx on newsletter_subscriber(doi_token);
 
 
 -- ── 4. Lager: Verbrauchsmittel ──────────────────────────────────────────────

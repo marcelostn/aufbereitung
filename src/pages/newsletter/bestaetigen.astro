@@ -1,0 +1,106 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { getSupabase } from '../../lib/supabase-server';
+
+export const prerender = false;
+
+const url = new URL(Astro.request.url);
+const token = (url.searchParams.get('token') ?? '').trim();
+
+type Status = 'success' | 'invalid' | 'error';
+let status: Status = 'invalid';
+
+// Token-Format: UUID v4 → 36 Zeichen mit Bindestrichen.
+const looksLikeToken = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(token);
+
+if (looksLikeToken) {
+  const supabase = getSupabase();
+  if (!supabase) {
+    status = 'error';
+  } else {
+    const { data, error: selErr } = await supabase
+      .from('newsletter_subscriber')
+      .select('email')
+      .eq('doi_token', token)
+      .maybeSingle<{ email: string }>();
+
+    if (selErr) {
+      status = 'error';
+    } else if (!data) {
+      // Token nicht (mehr) vorhanden: ungültig, abgelaufen oder schon eingelöst.
+      status = 'invalid';
+    } else {
+      const { error: updErr } = await supabase
+        .from('newsletter_subscriber')
+        .update({ bestaetigt: true, doi_token: null })
+        .eq('doi_token', token);
+      status = updErr ? 'error' : 'success';
+    }
+  }
+}
+
+const title =
+  status === 'success'
+    ? 'Newsletter bestätigt'
+    : status === 'invalid'
+      ? 'Bestätigungs-Link ungültig'
+      : 'Etwas ist schiefgelaufen';
+---
+
+<BaseLayout title={title} description="Newsletter-Bestätigung — Glanzwerk Cloppenburg">
+  <section class="bg-zinc-950 min-h-[60vh] flex items-center">
+    <div class="max-w-2xl mx-auto px-4 sm:px-6 py-20 text-center">
+      {status === 'success' && (
+        <>
+          <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-amber-500/20 border border-amber-500/40 mb-6">
+            <svg class="w-8 h-8 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+            </svg>
+          </div>
+          <p class="text-amber-400/80 text-xs font-semibold tracking-[0.22em] uppercase mb-3">Bestätigt</p>
+          <h1 class="text-3xl sm:text-4xl font-black tracking-tighter text-zinc-100 mb-4">Du bist dabei!</h1>
+          <p class="text-zinc-400 text-base leading-relaxed mb-8 max-w-md mx-auto">
+            Deine Newsletter-Anmeldung ist jetzt bestätigt. Du bekommst ungefähr einmal pro Monat
+            Saisonpflege-Tipps, Vorher/Nachher-Beispiele aus echten Aufträgen — und gelegentlich eine
+            Sonderaktion für Stammkunden.
+          </p>
+        </>
+      )}
+
+      {status === 'invalid' && (
+        <>
+          <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-zinc-800 border border-zinc-700 mb-6">
+            <svg class="w-8 h-8 text-zinc-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z" />
+            </svg>
+          </div>
+          <h1 class="text-3xl sm:text-4xl font-black tracking-tighter text-zinc-100 mb-4">Bestätigungs-Link ungültig</h1>
+          <p class="text-zinc-400 text-base leading-relaxed mb-8 max-w-md mx-auto">
+            Der Link funktioniert nicht mehr — entweder hast du deine Anmeldung bereits bestätigt,
+            der Link ist abgelaufen oder unvollständig kopiert. Trag dich gern unten auf der
+            Startseite nochmal ein, dann schicken wir dir eine neue Bestätigungs-Mail.
+          </p>
+        </>
+      )}
+
+      {status === 'error' && (
+        <>
+          <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-red-500/15 border border-red-500/30 mb-6">
+            <svg class="w-8 h-8 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
+            </svg>
+          </div>
+          <h1 class="text-3xl sm:text-4xl font-black tracking-tighter text-zinc-100 mb-4">Etwas ist schiefgelaufen</h1>
+          <p class="text-zinc-400 text-base leading-relaxed mb-8 max-w-md mx-auto">
+            Wir konnten deine Bestätigung gerade nicht verarbeiten. Versuch es bitte gleich noch
+            einmal — oder schreib uns kurz an <a href="mailto:info@glanzwerk-cloppenburg.de" class="text-amber-400 hover:text-amber-300 underline">info@glanzwerk-cloppenburg.de</a>.
+          </p>
+        </>
+      )}
+
+      <a href="/" class="btn-gold inline-block px-6 py-3 rounded-xl font-bold text-sm">
+        Zur Startseite
+      </a>
+    </div>
+  </section>
+</BaseLayout>

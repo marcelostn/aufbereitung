@@ -1,11 +1,9 @@
 /**
- * Öffentliche Newsletter-Anmeldung vom Footer-Formular.
+ * Öffentliche Newsletter-Anmeldung (Footer-Formular).
  *
  *   POST /api/newsletter/subscribe
  *     Body: { email, name?, honeypot? }
  *     200 { ok: true, created: boolean, doi: boolean }
- *           created → neuer Subscriber in Supabase angelegt (false = schon bekannt)
- *           doi     → Brevo hat die DOI-Bestätigungsmail rausgeschickt
  *     400 { error: 'invalid_email' | 'invalid_json' }
  *     429 { error: 'rate_limited' }
  *     503 { error: 'not_configured' }
@@ -14,17 +12,17 @@
  *
  * Ablauf:
  *   1. Honeypot/Rate-Limit/Email-Validierung.
- *   2. Wenn Brevo (BREVO_API_KEY + BREVO_DOI_TEMPLATE_ID) konfiguriert ist:
- *      Brevo `contacts/doubleOptinConfirmation` aufrufen → Brevo schickt
- *      automatisch die Bestätigungs-Mail mit DOI-Link. Sobald der Subscriber
- *      bestätigt, landet er in der Brevo-Liste (BREVO_LIST_ID).
- *   3. Parallel Supabase-Insert (bestaetigt=false, quelle='Webseite'), damit
- *      der User die Anmeldung im Admin sieht, auch bevor Brevo bestätigt ist.
+ *   2. Token (crypto.randomUUID) generieren + Supabase-Insert mit bestaetigt=false.
+ *   3. Wenn Resend (RESEND_API_KEY) konfiguriert: Mail mit Bestätigungs-Link
+ *      `${PUBLIC_BASE_URL}/newsletter/bestaetigen?token=<token>` versenden.
+ *   4. Bestätigung läuft über /newsletter/bestaetigen (siehe dort): setzt
+ *      bestaetigt=true + löscht den Token.
  *
  * Spam-Schutz: Honeypot + In-Memory-Rate-Limit (5/IP/h).
  */
 
 import type { APIRoute } from 'astro';
+import { Resend } from 'resend';
 import { getSupabase } from '../../../lib/supabase-server';
 
 export const prerender = false;
@@ -68,46 +66,68 @@ function clientIp(request: Request): string {
   return request.headers.get('x-real-ip') ?? 'unbekannt';
 }
 
-// ── Brevo Double-Opt-In ───────────────────────────────────────────────────
-async function brevoDoi(email: string, name: string): Promise<boolean> {
-  const apiKey = import.meta.env.BREVO_API_KEY ?? process.env.BREVO_API_KEY ?? '';
-  const listIdRaw = import.meta.env.BREVO_LIST_ID ?? process.env.BREVO_LIST_ID ?? '';
-  const templateIdRaw = import.meta.env.BREVO_DOI_TEMPLATE_ID ?? process.env.BREVO_DOI_TEMPLATE_ID ?? '';
-  const redirectUrl = import.meta.env.BREVO_REDIRECT_URL ?? process.env.BREVO_REDIRECT_URL ?? '';
+// ── Resend DOI-Mail ───────────────────────────────────────────────────────
+const RESEND_API_KEY =
+  import.meta.env.RESEND_API_KEY ?? process.env.RESEND_API_KEY ?? '';
+const FROM_EMAIL =
+  import.meta.env.NEWSLETTER_FROM ??
+  process.env.NEWSLETTER_FROM ??
+  'info@glanzwerk-cloppenburg.de';
+const FROM_NAME = 'Glanzwerk Cloppenburg';
+const BASE_URL =
+  import.meta.env.PUBLIC_BASE_URL ??
+  process.env.PUBLIC_BASE_URL ??
+  'https://glanzwerk-cloppenburg.de';
 
-  const listId = parseInt(listIdRaw, 10);
-  const templateId = parseInt(templateIdRaw, 10);
+async function sendDoiMail(email: string, name: string, token: string): Promise<boolean> {
+  if (!RESEND_API_KEY) return false;
 
-  if (!apiKey || !listId || !templateId || !redirectUrl) {
-    return false; // Brevo nicht konfiguriert → still überspringen
-  }
+  const confirmUrl = `${BASE_URL}/newsletter/bestaetigen?token=${encodeURIComponent(token)}`;
+  const greeting = name ? `Hallo ${name},` : 'Hallo,';
+
+  const html = `<!doctype html>
+<html lang="de">
+  <body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0f1113;color:#f2f3f5;margin:0;padding:24px">
+    <div style="max-width:560px;margin:0 auto;background:#15171a;border-radius:16px;padding:32px 28px">
+      <p style="color:#c9a86a;font-size:12px;font-weight:700;letter-spacing:0.22em;text-transform:uppercase;margin:0 0 12px">Glanzwerk Cloppenburg</p>
+      <h1 style="font-size:24px;font-weight:900;color:#f2f3f5;margin:0 0 16px;letter-spacing:-0.02em">Nur noch ein Klick</h1>
+      <p style="color:#9aa0a8;line-height:1.7;margin:0 0 24px">${greeting} danke fürs Eintragen! Klick den Button unten, um deine Newsletter-Anmeldung zu bestätigen — danach gehört der Saisonpflege-Newsletter dir.</p>
+      <p style="margin:0 0 32px">
+        <a href="${confirmUrl}" style="display:inline-block;background:#c9a86a;color:#0f1113;padding:14px 24px;border-radius:10px;font-weight:700;text-decoration:none">Anmeldung bestätigen</a>
+      </p>
+      <p style="color:#71717a;font-size:13px;line-height:1.6;margin:0 0 24px">Falls der Button nicht funktioniert, kopier diesen Link in deinen Browser:<br><a href="${confirmUrl}" style="color:#c9a86a;word-break:break-all">${confirmUrl}</a></p>
+      <hr style="border:0;border-top:1px solid #2c3036;margin:24px 0">
+      <p style="color:#52525b;font-size:12px;line-height:1.6;margin:0">Du hast dich nicht angemeldet? Ignoriere diese Mail einfach — ohne Bestätigung passiert nichts.</p>
+    </div>
+  </body>
+</html>`;
+
+  const text = `${greeting}
+
+Danke fürs Eintragen! Bestätige deine Newsletter-Anmeldung mit einem Klick auf diesen Link:
+
+${confirmUrl}
+
+Du hast dich nicht angemeldet? Ignoriere diese Mail einfach — ohne Bestätigung passiert nichts.
+
+Glanzwerk Cloppenburg`;
 
   try {
-    const res = await fetch('https://api.brevo.com/v3/contacts/doubleOptinConfirmation', {
-      method: 'POST',
-      headers: {
-        'api-key': apiKey,
-        'content-type': 'application/json',
-        'accept': 'application/json',
-      },
-      body: JSON.stringify({
-        email,
-        attributes: name ? { FIRSTNAME: name } : {},
-        includeListIds: [listId],
-        templateId,
-        redirectionUrl: redirectUrl,
-      }),
+    const resend = new Resend(RESEND_API_KEY);
+    const result = await resend.emails.send({
+      from: `${FROM_NAME} <${FROM_EMAIL}>`,
+      to: [email],
+      subject: 'Bestätige deine Anmeldung zum Glanzwerk-Newsletter',
+      html,
+      text,
     });
-    // 201 oder 204 = Erfolg; alles andere wird im Server-Log auftauchen, aber
-    // wir blockieren die Anmeldung nicht — Supabase-Eintrag rettet den Datensatz.
-    if (!res.ok) {
-      const txt = await res.text().catch(() => '');
-      console.warn('[brevo-doi] HTTP', res.status, txt.slice(0, 200));
+    if (result.error) {
+      console.warn('[resend] error', result.error);
       return false;
     }
     return true;
   } catch (err) {
-    console.warn('[brevo-doi] fetch error', err);
+    console.warn('[resend] fetch error', err);
     return false;
   }
 }
@@ -121,7 +141,6 @@ export const POST: APIRoute = async ({ request }) => {
     return json({ error: 'invalid_json' }, 400);
   }
 
-  // Honeypot — Bot? Freundlich mit 200 ok antworten.
   if (body.honeypot && body.honeypot.trim() !== '') {
     return json({ ok: true, created: false, doi: false });
   }
@@ -139,32 +158,41 @@ export const POST: APIRoute = async ({ request }) => {
   if (!supabase) return json({ error: 'not_configured' }, 503);
 
   const name = (body.name ?? '').trim().slice(0, 100);
+  const token = crypto.randomUUID();
 
   const { data: bestand } = await supabase
     .from('newsletter_subscriber')
-    .select('email')
+    .select('email, bestaetigt')
     .eq('email', email)
-    .maybeSingle<{ email: string }>();
-
-  // Brevo-DOI auch für bekannte Adressen erneut anstoßen — schadet nicht,
-  // Brevo dedupliziert serverseitig und schickt keine zweite Mail an
-  // bereits bestätigte Kontakte.
-  const doi = await brevoDoi(email, name);
+    .maybeSingle<{ email: string; bestaetigt: boolean }>();
 
   if (bestand) {
-    return json({ ok: true, created: false, doi });
+    // Schon bekannt. Wenn noch nicht bestätigt: neuen Token + DOI-Mail
+    // anstoßen, damit der Subscriber eine neue Bestätigungs-Chance bekommt.
+    // Wenn bereits bestätigt: still nichts tun, keine doppelte Mail.
+    if (!bestand.bestaetigt) {
+      await supabase
+        .from('newsletter_subscriber')
+        .update({ doi_token: token, name: name || undefined })
+        .eq('email', email);
+      const doi = await sendDoiMail(email, name, token);
+      return json({ ok: true, created: false, doi });
+    }
+    return json({ ok: true, created: false, doi: false });
   }
 
   const { error } = await supabase.from('newsletter_subscriber').insert({
     email,
     name,
-    quelle: doi ? 'Webseite (Brevo DOI)' : 'Webseite',
+    quelle: 'Webseite',
     notiz: '',
     bestaetigt: false,
+    doi_token: token,
   });
   if (error) {
     return json({ error: 'db_error' }, 500);
   }
 
+  const doi = await sendDoiMail(email, name, token);
   return json({ ok: true, created: true, doi });
 };
