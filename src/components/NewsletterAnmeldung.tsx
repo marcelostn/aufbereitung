@@ -1,15 +1,11 @@
 import { useState } from 'react';
 
-interface Props {
-  empfaenger: string;       // FIRMA.email
-  web3formsKey?: string;    // FIRMA.web3formsKey
-}
-
-export default function NewsletterAnmeldung({ empfaenger, web3formsKey }: Props) {
+export default function NewsletterAnmeldung() {
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
+  const [honeypot, setHoneypot] = useState('');
   const [dsgvo, setDsgvo] = useState(false);
-  const [status, setStatus] = useState<'idle' | 'sending' | 'success' | 'error'>('idle');
+  const [status, setStatus] = useState<'idle' | 'sending' | 'success' | 'success_doi' | 'error'>('idle');
   const [fehler, setFehler] = useState('');
 
   async function absenden(e: React.FormEvent) {
@@ -18,45 +14,42 @@ export default function NewsletterAnmeldung({ empfaenger, web3formsKey }: Props)
     setStatus('sending');
     setFehler('');
 
-    const nachricht = [
-      'Neue Newsletter-Anmeldung',
-      '',
-      `E-Mail: ${email}`,
-      name ? `Name: ${name}` : '',
-      '',
-      '→ Bitte Bestätigungsmail mit „Willkommen — du erhältst ca. 1 Mail pro Monat" schicken.',
-      '→ Diese Adresse manuell in die Newsletter-Liste eintragen (Brevo / Excel / CRM).',
-    ].filter(Boolean).join('\n');
-
-    if (web3formsKey) {
-      try {
-        const res = await fetch('https://api.web3forms.com/submit', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-          body: JSON.stringify({
-            access_key: web3formsKey,
-            subject: `Newsletter-Anmeldung: ${email}`,
-            from_name: name || 'Newsletter-Interessent',
-            email,
-            replyto: email,
-            message: nachricht,
-          }),
-        });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const data = await res.json();
-        if (!data.success) throw new Error(data.message || 'Unbekannter Fehler');
-        setStatus('success');
-      } catch (err) {
-        setFehler(err instanceof Error ? err.message : 'Versand fehlgeschlagen');
-        setStatus('error');
+    try {
+      const res = await fetch('/api/newsletter/subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, name, honeypot }),
+      });
+      const data = (await res.json().catch(() => ({}))) as {
+        ok?: boolean;
+        doi?: boolean;
+        error?: string;
+      };
+      if (!res.ok || !data.ok) {
+        throw new Error(data.error || `HTTP ${res.status}`);
       }
-    } else {
-      // Kein Web3Forms-Key → mailto-Fallback
-      const subject = encodeURIComponent(`Newsletter-Anmeldung: ${email}`);
-      const body = encodeURIComponent(nachricht);
-      window.location.href = `mailto:${empfaenger}?subject=${subject}&body=${body}`;
-      setStatus('success');
+      setStatus(data.doi ? 'success_doi' : 'success');
+    } catch (err) {
+      setFehler(err instanceof Error ? err.message : 'Unbekannter Fehler');
+      setStatus('error');
     }
+  }
+
+  if (status === 'success_doi') {
+    return (
+      <div className="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-6 text-center max-w-2xl mx-auto">
+        <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-amber-500/20 border border-amber-500/40 mb-3">
+          <svg className="w-6 h-6 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25h-15a2.25 2.25 0 0 1-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25m19.5 0v.243a2.25 2.25 0 0 1-1.07 1.916l-7.5 4.615a2.25 2.25 0 0 1-2.36 0L3.32 8.91a2.25 2.25 0 0 1-1.07-1.916V6.75" />
+          </svg>
+        </div>
+        <p className="font-bold text-amber-200 text-lg">Bestätigungs-Mail unterwegs!</p>
+        <p className="text-amber-300/80 text-sm mt-2 leading-relaxed max-w-md mx-auto">
+          Wir haben dir gerade eine Bestätigungs-Mail geschickt. Klick einfach den Link drin —
+          danach bist du dabei. Schau auch im Spam-Ordner, falls sie nicht sofort ankommt.
+        </p>
+      </div>
+    );
   }
 
   if (status === 'success') {
@@ -69,7 +62,7 @@ export default function NewsletterAnmeldung({ empfaenger, web3formsKey }: Props)
         </div>
         <p className="font-bold text-amber-200 text-lg">Danke für die Anmeldung!</p>
         <p className="text-amber-300/80 text-sm mt-2 leading-relaxed max-w-md mx-auto">
-          Wir bestätigen deine Anmeldung in Kürze per E-Mail. Erst danach bist du auf der Liste — versprochen, kein Spam.
+          Wir bestätigen deine Anmeldung in Kürze per E-Mail.
         </p>
       </div>
     );
@@ -77,6 +70,20 @@ export default function NewsletterAnmeldung({ empfaenger, web3formsKey }: Props)
 
   return (
     <form onSubmit={absenden} className="max-w-2xl mx-auto">
+      {/* Honeypot — für Menschen unsichtbar, Bots füllen es aus. */}
+      <div aria-hidden="true" style={{ position: 'absolute', left: '-10000px', width: 1, height: 1, overflow: 'hidden' }}>
+        <label>
+          Website
+          <input
+            type="text"
+            tabIndex={-1}
+            autoComplete="off"
+            value={honeypot}
+            onChange={(e) => setHoneypot(e.target.value)}
+          />
+        </label>
+      </div>
+
       <div className="flex flex-col sm:flex-row gap-2 mb-3">
         <input
           type="text"
@@ -118,8 +125,7 @@ export default function NewsletterAnmeldung({ empfaenger, web3formsKey }: Props)
 
       {status === 'error' && (
         <p className="text-sm text-red-400 mt-3">
-          Versand fehlgeschlagen ({fehler}). Bitte versuche es später nochmal oder schreib uns direkt an{' '}
-          <a href={`mailto:${empfaenger}`} className="underline">{empfaenger}</a>.
+          Anmeldung fehlgeschlagen ({fehler}). Bitte versuche es später nochmal.
         </p>
       )}
     </form>

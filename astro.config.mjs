@@ -8,7 +8,7 @@ import vercel from '@astrojs/vercel';
 
 export default defineConfig({
   adapter: vercel(),
-  site: 'https://autoaufbereitung-cloppenburg.de', // TODO: echte Domain eintragen
+  site: 'https://glanzwerk-cloppenburg.de',
   vite: {
     plugins: [tailwindcss()],
   },

@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://autoaufbereitung-cloppenburg.de/sitemap-index.xml
+Sitemap: https://glanzwerk-cloppenburg.de/sitemap-index.xml
