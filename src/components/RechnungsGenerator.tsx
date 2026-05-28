@@ -9,6 +9,14 @@ import {
   BELOHNUNG_INTERVALL,
   type KundenStempel,
 } from '../lib/treue';
+import {
+  fetchAlleRechnungen,
+  fetchNaechsteNummer,
+  upsertRechnung,
+  loescheRechnung as loescheRechnungApi,
+  type ArchivEintrag,
+  type Pos,
+} from '../lib/rechnungen';
 import { BELOHNUNGEN } from '../data/treue-belohnungen';
 
 const EUR = (n: number) =>
@@ -21,68 +29,6 @@ const FMT = (iso: string) => {
   const [y, m, d] = iso.split('-');
   return `${d}.${m}.${y}`;
 };
-
-const STORAGE_KEY = 'rechnung_zaehler';
-const ARCHIV_KEY = 'rechnungen_archiv_v1';
-
-function nextNummer(): string {
-  const jahr = new Date().getFullYear();
-  try {
-    const s = localStorage.getItem(STORAGE_KEY);
-    if (s) {
-      const o = JSON.parse(s);
-      if (o.jahr === jahr) return `RE-${jahr}-${String(o.nr + 1).padStart(3, '0')}`;
-    }
-  } catch {}
-  return `RE-${jahr}-001`;
-}
-
-function saveNummer(nr: string) {
-  const m = nr.match(/RE-(\d{4})-(\d+)/);
-  if (m) localStorage.setItem(STORAGE_KEY, JSON.stringify({ jahr: parseInt(m[1]), nr: parseInt(m[2]) }));
-}
-
-interface Pos {
-  beschreibung: string;
-  brutto: string;
-}
-
-interface ArchivEintrag {
-  rNr: string;
-  rDatum: string;
-  lDatum: string;
-  kName: string;
-  kAdresse: string;
-  kEmail: string;
-  kTelefon?: string;
-  fahrzeug: string;
-  positionen: Pos[];
-  zahlung: 'bar' | 'karte' | 'ueberweisung';
-  zahlungsziel: string;
-  notiz: string;
-  gespeichertAm: string;
-  brutto: number;
-}
-
-function loadArchiv(): ArchivEintrag[] {
-  try {
-    const s = localStorage.getItem(ARCHIV_KEY);
-    if (s) return JSON.parse(s) as ArchivEintrag[];
-  } catch {}
-  return [];
-}
-
-function saveArchiv(arr: ArchivEintrag[]) {
-  try { localStorage.setItem(ARCHIV_KEY, JSON.stringify(arr)); } catch {}
-}
-
-function upsertArchiv(eintrag: ArchivEintrag) {
-  const arr = loadArchiv();
-  const idx = arr.findIndex((e) => e.rNr === eintrag.rNr);
-  if (idx >= 0) arr[idx] = eintrag;
-  else arr.unshift(eintrag);
-  saveArchiv(arr);
-}
 
 export interface Preset {
   label: string;
@@ -144,42 +90,55 @@ export default function RechnungsGenerator({ firma, presets }: Props) {
   const [prefillBanner, setPrefillBanner] = useState(false);
 
   useEffect(() => {
-    setRNr(nextNummer());
-    const a = loadArchiv();
-    setArchiv(a);
+    let cancelled = false;
+    (async () => {
+      try {
+        const [nr, a] = await Promise.all([fetchNaechsteNummer(), fetchAlleRechnungen()]);
+        if (cancelled) return;
+        setRNr(nr);
+        setArchiv(a);
 
-    // URL-Parameter aus Terminanfrage auslesen und Felder vorbefüllen
-    const params = new URLSearchParams(window.location.search);
-    if (params.has('vorname') || params.has('nachname') || params.has('paket')) {
-      const vorname = params.get('vorname') ?? '';
-      const nachname = params.get('nachname') ?? '';
-      const strasse = params.get('strasse') ?? '';
-      const plz = params.get('plz') ?? '';
-      const ort = params.get('ort') ?? '';
-      const paket = params.get('paket') ?? '';
-      const preis = params.get('preis') ?? '';
+        // URL-Parameter aus Terminanfrage auslesen und Felder vorbefüllen
+        const params = new URLSearchParams(window.location.search);
+        if (params.has('vorname') || params.has('nachname') || params.has('paket')) {
+          const vorname = params.get('vorname') ?? '';
+          const nachname = params.get('nachname') ?? '';
+          const strasse = params.get('strasse') ?? '';
+          const plz = params.get('plz') ?? '';
+          const ort = params.get('ort') ?? '';
+          const paket = params.get('paket') ?? '';
+          const preis = params.get('preis') ?? '';
 
-      setKName(`${vorname} ${nachname}`.trim());
-      setKAdresse([strasse, `${plz} ${ort}`.trim()].filter(Boolean).join('\n'));
-      setKEmail(params.get('kEmail') ?? '');
-      setKTelefon(params.get('kTelefon') ?? '');
-      setFahrzeug(params.get('fahrzeug') ?? '');
-      if (paket) {
-        const brutto = preis ? parseFloat(preis).toFixed(2).replace('.', ',') : '';
-        setPositionen([{ beschreibung: paket, brutto }]);
+          setKName(`${vorname} ${nachname}`.trim());
+          setKAdresse([strasse, `${plz} ${ort}`.trim()].filter(Boolean).join('\n'));
+          setKEmail(params.get('kEmail') ?? '');
+          setKTelefon(params.get('kTelefon') ?? '');
+          setFahrzeug(params.get('fahrzeug') ?? '');
+          if (paket) {
+            const brutto = preis ? parseFloat(preis).toFixed(2).replace('.', ',') : '';
+            setPositionen([{ beschreibung: paket, brutto }]);
+          }
+          setView('form');
+          setPrefillBanner(true);
+          // URL aufräumen, damit beim Reload nicht erneut prefilled wird
+          window.history.replaceState({}, '', window.location.pathname);
+          return;
+        }
+
+        if (a.length > 0) setView('list');
+      } catch (err) {
+        console.error('Rechnungs-Init fehlgeschlagen:', err);
       }
-      setView('form');
-      setPrefillBanner(true);
-      // URL aufräumen, damit beim Reload nicht erneut prefilled wird
-      window.history.replaceState({}, '', window.location.pathname);
-      return;
-    }
-
-    if (a.length > 0) setView('list');
+    })();
+    return () => { cancelled = true; };
   }, []);
 
-  function resetForm() {
-    setRNr(nextNummer());
+  async function resetForm() {
+    try {
+      setRNr(await fetchNaechsteNummer());
+    } catch {
+      // Fallback: behält die aktuelle Nummer
+    }
     setRDatum(TODAY());
     setLDatum(TODAY());
     setKName('');
@@ -213,20 +172,32 @@ export default function RechnungsGenerator({ firma, presets }: Props) {
     window.scrollTo(0, 0);
   }
 
-  // Treuekunde-Status nachladen, sobald Telefonnummer eingegeben wird
+  // Treuekunde-Status nachladen, sobald Telefonnummer eingegeben wird (debounced via Cancel-Flag)
   useEffect(() => {
-    if (kTelefon && normalisiereTelefon(kTelefon).length >= 4) {
-      setTreueKunde(findeStempel(kTelefon));
-    } else {
+    if (!kTelefon || normalisiereTelefon(kTelefon).length < 4) {
       setTreueKunde(null);
+      return;
     }
+    let cancelled = false;
+    (async () => {
+      try {
+        const k = await findeStempel(kTelefon);
+        if (!cancelled) setTreueKunde(k);
+      } catch {
+        if (!cancelled) setTreueKunde(null);
+      }
+    })();
+    return () => { cancelled = true; };
   }, [kTelefon]);
 
-  function loescheRechnung(rNrZuLoeschen: string) {
+  async function loescheRechnung(rNrZuLoeschen: string) {
     if (!confirm(`Rechnung ${rNrZuLoeschen} wirklich aus dem Archiv löschen?`)) return;
-    const neu = archiv.filter((e) => e.rNr !== rNrZuLoeschen);
-    saveArchiv(neu);
-    setArchiv(neu);
+    try {
+      await loescheRechnungApi(rNrZuLoeschen);
+      setArchiv(archiv.filter((e) => e.rNr !== rNrZuLoeschen));
+    } catch (err) {
+      alert('Löschen fehlgeschlagen: ' + String(err));
+    }
   }
 
   const parseB = (s: string) => parseFloat(s.replace(',', '.')) || 0;
@@ -284,24 +255,30 @@ export default function RechnungsGenerator({ firma, presets }: Props) {
     if (positionen.length > 1) setPositionen(p => p.filter((_, idx) => idx !== i));
   }
 
-  function erstellen(e: React.FormEvent) {
+  async function erstellen(e: React.FormEvent) {
     e.preventDefault();
-    saveNummer(rNr);
     const eintrag: ArchivEintrag = {
       rNr, rDatum, lDatum, kName, kAdresse, kEmail, kTelefon, fahrzeug,
       positionen, zahlung, zahlungsziel, notiz,
       gespeichertAm: new Date().toISOString(),
       brutto: bruttoGes,
     };
-    upsertArchiv(eintrag);
-    // Treue-Stempel: +1 wenn Telefon gepflegt ist
-    if (kTelefon) {
-      addStempel(kTelefon, kName, rDatum);
-      if (belohnungEingesetzt) {
-        markiereEinloesung(kTelefon, { datum: rDatum, produkt: belohnungEingesetzt, rechnungsNr: rNr });
-      }
+    try {
+      await upsertRechnung(eintrag);
+    } catch (err) {
+      alert('Rechnung konnte nicht gespeichert werden: ' + String(err));
+      return;
     }
-    setArchiv(loadArchiv());
+    // Treue-Stempel: +1 wenn Telefon gepflegt ist (fire-and-forget; UI wartet nicht)
+    if (kTelefon) {
+      void addStempel(kTelefon, kName, rDatum).then(() => {
+        if (belohnungEingesetzt) {
+          return markiereEinloesung(kTelefon, { datum: rDatum, produkt: belohnungEingesetzt, rechnungsNr: rNr });
+        }
+      });
+    }
+    // Archiv neu laden (auch um neue Position oben in der Liste zu sehen)
+    fetchAlleRechnungen().then(setArchiv).catch(() => {});
     setView('invoice');
     window.scrollTo(0, 0);
   }

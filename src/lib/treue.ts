@@ -1,10 +1,13 @@
 /**
  * Treuekarten-Logik: jeder 5. Auftrag → Belohnung (kleines Pflegeprodukt).
- * Storage: localStorage, kein Backend nötig (Single-Browser-Use im Admin).
- * Identifikator: normalisierte Telefonnummer.
+ *
+ * Speicherung: Supabase (geräteübergreifend). Alle Schreib-/Lesezugriffe laufen
+ * über /api/treue und sind dadurch async. Pure Hilfsfunktionen (normalisieren,
+ * Belohnungs-Logik) bleiben synchron.
+ *
+ * Identifikator: normalisierte Telefonnummer (eindeutig in der DB).
  */
 
-export const STORAGE_KEY = 'treue_stempel_v1';
 export const BELOHNUNG_INTERVALL = 5;
 
 export interface Einloesung {
@@ -21,6 +24,8 @@ export interface KundenStempel {
   letzterAuftrag: string; // ISO
   einloesungen: Einloesung[];
 }
+
+// ── Pure Helpers ────────────────────────────────────────────────────────────
 
 /** Telefon normalisieren: nur Ziffern, +49 / 0049 / 49xxx → 0xxx. Leerstring wenn unbrauchbar. */
 export function normalisiereTelefon(s: string): string {
@@ -50,101 +55,84 @@ export function bisNaechsteBelohnung(s: KundenStempel | null): number {
   return rest === 0 && s.anzahlAuftraege > 0 ? 0 : BELOHNUNG_INTERVALL - rest;
 }
 
-// ── localStorage (SSR-safe) ─────────────────────────────────────────────────
+// ── API-Calls (async) ───────────────────────────────────────────────────────
 
-export function loadAlleStempel(): KundenStempel[] {
-  if (typeof window === 'undefined') return [];
-  try {
-    const s = window.localStorage.getItem(STORAGE_KEY);
-    if (!s) return [];
-    const arr = JSON.parse(s);
-    return Array.isArray(arr) ? arr : [];
-  } catch {
-    return [];
+async function api<T>(method: string, body?: unknown, query?: string): Promise<T> {
+  const res = await fetch('/api/treue' + (query ?? ''), {
+    method,
+    credentials: 'include',
+    headers: body ? { 'Content-Type': 'application/json' } : undefined,
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  if (!res.ok) {
+    const txt = await res.text().catch(() => '');
+    throw new Error(`API /api/treue ${method} → HTTP ${res.status}: ${txt}`);
   }
+  return (await res.json()) as T;
 }
 
-export function saveAlleStempel(arr: KundenStempel[]): void {
-  if (typeof window === 'undefined') return;
-  try {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(arr));
-  } catch {
-    /* Speicher voll oder verboten – ignorieren */
-  }
+export async function fetchAlleStempel(): Promise<KundenStempel[]> {
+  const data = await api<{ kunden: KundenStempel[] }>('GET');
+  return data.kunden;
 }
 
-export function findeStempel(telefonRoh: string): KundenStempel | null {
+export async function findeStempel(telefonRoh: string): Promise<KundenStempel | null> {
   const tel = normalisiereTelefon(telefonRoh);
   if (!tel) return null;
-  return loadAlleStempel().find((k) => k.telefon === tel) ?? null;
+  const data = await api<{ kunde: KundenStempel | null }>('GET', undefined, `?telefon=${encodeURIComponent(tel)}`);
+  return data.kunde;
 }
 
-/**
- * Auftrag verbuchen: erhöht den Stempel-Zähler um 1.
- * Wenn der Kunde neu ist, wird er angelegt.
- * Gibt den aktualisierten Eintrag zurück.
- */
-export function addStempel(
+export async function addStempel(
   telefonRoh: string,
   name: string,
   datumIso: string
-): KundenStempel | null {
+): Promise<KundenStempel | null> {
   const tel = normalisiereTelefon(telefonRoh);
   if (!tel) return null;
-  const arr = loadAlleStempel();
-  const idx = arr.findIndex((k) => k.telefon === tel);
-  if (idx >= 0) {
-    arr[idx] = {
-      ...arr[idx],
-      name: name || arr[idx].name,
-      anzahlAuftraege: arr[idx].anzahlAuftraege + 1,
-      letzterAuftrag: datumIso,
-    };
-    saveAlleStempel(arr);
-    return arr[idx];
-  }
-  const neu: KundenStempel = {
+  const data = await api<{ kunde: KundenStempel | null }>('POST', {
+    action: 'add',
     telefon: tel,
     name,
-    anzahlAuftraege: 1,
-    ersterAuftrag: datumIso,
-    letzterAuftrag: datumIso,
-    einloesungen: [],
-  };
-  arr.unshift(neu);
-  saveAlleStempel(arr);
-  return neu;
+    datumIso,
+  });
+  return data.kunde;
 }
 
-/** Eine Belohnung als eingelöst markieren. Gibt den aktualisierten Eintrag zurück oder null wenn keine offene Belohnung. */
-export function markiereEinloesung(telefonRoh: string, eintrag: Einloesung): KundenStempel | null {
+export async function markiereEinloesung(
+  telefonRoh: string,
+  eintrag: Einloesung
+): Promise<KundenStempel | null> {
   const tel = normalisiereTelefon(telefonRoh);
   if (!tel) return null;
-  const arr = loadAlleStempel();
-  const idx = arr.findIndex((k) => k.telefon === tel);
-  if (idx < 0) return null;
-  if (offeneBelohnungen(arr[idx]) <= 0) return arr[idx]; // nichts offen
-  arr[idx] = { ...arr[idx], einloesungen: [...arr[idx].einloesungen, eintrag] };
-  saveAlleStempel(arr);
-  return arr[idx];
+  const data = await api<{ kunde: KundenStempel | null }>('POST', {
+    action: 'einloesung',
+    telefon: tel,
+    eintrag,
+  });
+  return data.kunde;
 }
 
-/** Stempel-Korrektur (z.B. Tippfehler): manuell Anzahl setzen. */
-export function setStempelAnzahl(telefonRoh: string, neueAnzahl: number): KundenStempel | null {
+export async function setStempelAnzahl(
+  telefonRoh: string,
+  neueAnzahl: number
+): Promise<KundenStempel | null> {
   const tel = normalisiereTelefon(telefonRoh);
   if (!tel) return null;
-  const arr = loadAlleStempel();
-  const idx = arr.findIndex((k) => k.telefon === tel);
-  if (idx < 0) return null;
-  arr[idx] = { ...arr[idx], anzahlAuftraege: Math.max(0, Math.floor(neueAnzahl)) };
-  saveAlleStempel(arr);
-  return arr[idx];
+  const data = await api<{ kunde: KundenStempel | null }>('POST', {
+    action: 'setAnzahl',
+    telefon: tel,
+    neueAnzahl: Math.max(0, Math.floor(neueAnzahl)),
+  });
+  return data.kunde;
 }
 
-/** Kunde komplett löschen (z.B. Doppel-Eintrag). */
-export function loescheStempel(telefonRoh: string): void {
+export async function loescheStempel(telefonRoh: string): Promise<void> {
   const tel = normalisiereTelefon(telefonRoh);
   if (!tel) return;
-  const arr = loadAlleStempel().filter((k) => k.telefon !== tel);
-  saveAlleStempel(arr);
+  await api<{ ok: boolean }>('DELETE', undefined, `?telefon=${encodeURIComponent(tel)}`);
+}
+
+export async function loescheAlleStempel(): Promise<void> {
+  await api<{ ok: boolean }>('DELETE', undefined, '?all=1');
 }

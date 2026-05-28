@@ -1,17 +1,15 @@
 /**
- * Newsletter-Subscriber-Liste — lokales Storage im Admin.
+ * Newsletter-Subscriber-Liste — Speicherung in Supabase (zentral).
  * Anmeldungen kommen aktuell per E-Mail an die Firmenadresse (Web3Forms);
  * der User pflegt sie hier manuell ein. Sobald Brevo o.ä. eingebunden ist,
  * wandert die Liste dort hin — bis dahin dient diese Liste als zentrales
  * Sammelbecken + CSV-Export-Quelle.
  */
 
-export const STORAGE_KEY = 'newsletter_subscriber_v1';
-
 export interface Subscriber {
   email: string;     // normalisiert (lowercase, trim)
   name?: string;
-  datum: string;     // ISO yyyy-mm-dd
+  datum: string;     // ISO yyyy-mm-dd (=created_at-Datum)
   quelle?: string;   // z.B. „Webseite", „WhatsApp", „Telefon"
   notiz?: string;
   bestaetigt: boolean; // hat der User die DOI-Mail manuell verschickt + Antwort erhalten?
@@ -21,72 +19,62 @@ export function normalisiereEmail(s: string): string {
   return (s || '').trim().toLowerCase();
 }
 
-export function loadAlleSubscriber(): Subscriber[] {
-  if (typeof window === 'undefined') return [];
-  try {
-    const s = window.localStorage.getItem(STORAGE_KEY);
-    if (!s) return [];
-    const arr = JSON.parse(s);
-    return Array.isArray(arr) ? arr : [];
-  } catch {
-    return [];
+// ── API-Calls ───────────────────────────────────────────────────────────────
+
+async function api<T>(method: string, body?: unknown, query?: string): Promise<T> {
+  const res = await fetch('/api/newsletter' + (query ?? ''), {
+    method,
+    credentials: 'include',
+    headers: body ? { 'Content-Type': 'application/json' } : undefined,
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  if (!res.ok) {
+    const txt = await res.text().catch(() => '');
+    throw new Error(`API /api/newsletter ${method} → HTTP ${res.status}: ${txt}`);
   }
+  return (await res.json()) as T;
 }
 
-export function saveAlleSubscriber(arr: Subscriber[]): void {
-  if (typeof window === 'undefined') return;
-  try {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(arr));
-  } catch {
-    /* ignore */
-  }
+export async function fetchAlleSubscriber(): Promise<Subscriber[]> {
+  const data = await api<{ subscriber: Subscriber[] }>('GET');
+  return data.subscriber;
 }
 
-export function findeSubscriber(emailRoh: string): Subscriber | null {
+export async function upsertSubscriber(
+  sub: Subscriber
+): Promise<{ created: boolean; subscriber: Subscriber | null }> {
+  const e = normalisiereEmail(sub.email);
+  if (!e) return { created: false, subscriber: null };
+  return await api<{ created: boolean; subscriber: Subscriber | null }>('POST', {
+    action: 'upsert',
+    sub: { ...sub, email: e },
+  });
+}
+
+export async function loescheSubscriber(emailRoh: string): Promise<void> {
+  const e = normalisiereEmail(emailRoh);
+  if (!e) return;
+  await api<{ ok: boolean }>('DELETE', undefined, `?email=${encodeURIComponent(e)}`);
+}
+
+export async function loescheAlleSubscriber(): Promise<void> {
+  await api<{ ok: boolean }>('DELETE', undefined, '?all=1');
+}
+
+export async function toggleBestaetigt(emailRoh: string): Promise<Subscriber | null> {
   const e = normalisiereEmail(emailRoh);
   if (!e) return null;
-  return loadAlleSubscriber().find((s) => s.email === e) ?? null;
+  const data = await api<{ subscriber: Subscriber | null }>('POST', {
+    action: 'toggle',
+    email: e,
+  });
+  return data.subscriber;
 }
 
-/** Subscriber hinzufügen oder aktualisieren. Gibt true zurück bei Neuanlage, false bei Update. */
-export function upsertSubscriber(sub: Omit<Subscriber, 'email'> & { email: string }): boolean {
-  const e = normalisiereEmail(sub.email);
-  if (!e) return false;
-  const arr = loadAlleSubscriber();
-  const idx = arr.findIndex((s) => s.email === e);
-  const eintrag: Subscriber = { ...sub, email: e };
-  if (idx >= 0) {
-    arr[idx] = { ...arr[idx], ...eintrag };
-    saveAlleSubscriber(arr);
-    return false;
-  }
-  arr.unshift(eintrag);
-  saveAlleSubscriber(arr);
-  return true;
-}
-
-export function loescheSubscriber(emailRoh: string): void {
-  const e = normalisiereEmail(emailRoh);
-  if (!e) return;
-  const arr = loadAlleSubscriber().filter((s) => s.email !== e);
-  saveAlleSubscriber(arr);
-}
-
-export function toggleBestaetigt(emailRoh: string): void {
-  const e = normalisiereEmail(emailRoh);
-  if (!e) return;
-  const arr = loadAlleSubscriber();
-  const idx = arr.findIndex((s) => s.email === e);
-  if (idx < 0) return;
-  arr[idx] = { ...arr[idx], bestaetigt: !arr[idx].bestaetigt };
-  saveAlleSubscriber(arr);
-}
-
-/** CSV-Export im Brevo-kompatiblen Format (EMAIL,FIRSTNAME,SMS,ATTRIBUTE_1,...). */
-export function exportiereCsv(): string {
-  const arr = loadAlleSubscriber();
+/** CSV-Export im Brevo-Format. Arbeitet auf bereits geladenen Subscribern (kein zusätzlicher Roundtrip). */
+export function exportiereCsv(subs: Subscriber[]): string {
   const header = ['EMAIL', 'FIRSTNAME', 'QUELLE', 'DATUM', 'BESTAETIGT', 'NOTIZ'];
-  const rows = arr.map((s) =>
+  const rows = subs.map((s) =>
     [
       s.email,
       s.name ?? '',

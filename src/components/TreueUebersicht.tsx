@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import {
-  loadAlleStempel,
-  saveAlleStempel,
+  fetchAlleStempel,
+  loescheAlleStempel,
   setStempelAnzahl,
   loescheStempel,
   offeneBelohnungen,
@@ -21,12 +21,24 @@ const SECTION = 'bg-zinc-900 border border-zinc-800 rounded-xl p-5';
 export default function TreueUebersicht() {
   const [kunden, setKunden] = useState<KundenStempel[]>([]);
   const [suche, setSuche] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [fehler, setFehler] = useState<string | null>(null);
+
+  async function refresh() {
+    setLoading(true);
+    setFehler(null);
+    try {
+      setKunden(await fetchAlleStempel());
+    } catch (e) {
+      setFehler(String(e));
+    } finally {
+      setLoading(false);
+    }
+  }
 
   useEffect(() => {
-    setKunden(loadAlleStempel());
+    void refresh();
   }, []);
-
-  const refresh = () => setKunden(loadAlleStempel());
 
   const gefiltert = suche.trim()
     ? kunden.filter((k) =>
@@ -51,28 +63,28 @@ export default function TreueUebersicht() {
   const offenGesamt = kunden.reduce((s, k) => s + offeneBelohnungen(k), 0);
   const auftraegeGesamt = kunden.reduce((s, k) => s + k.anzahlAuftraege, 0);
 
-  function manuellPlus(k: KundenStempel) {
+  async function manuellPlus(k: KundenStempel) {
     if (!confirm(`Manuell einen Stempel für ${k.name} hinzufügen?`)) return;
-    setStempelAnzahl(k.telefon, k.anzahlAuftraege + 1);
-    refresh();
+    await setStempelAnzahl(k.telefon, k.anzahlAuftraege + 1);
+    await refresh();
   }
 
-  function manuellMinus(k: KundenStempel) {
+  async function manuellMinus(k: KundenStempel) {
     if (!confirm(`Einen Stempel von ${k.name} abziehen?`)) return;
-    setStempelAnzahl(k.telefon, Math.max(0, k.anzahlAuftraege - 1));
-    refresh();
+    await setStempelAnzahl(k.telefon, Math.max(0, k.anzahlAuftraege - 1));
+    await refresh();
   }
 
-  function kundeLoeschen(k: KundenStempel) {
+  async function kundeLoeschen(k: KundenStempel) {
     if (!confirm(`Kunde ${k.name} (${k.telefon}) komplett aus der Treueliste entfernen?\n\nDies wirkt sich NICHT auf Rechnungen aus, nur auf den Stempel-Zähler.`)) return;
-    loescheStempel(k.telefon);
-    refresh();
+    await loescheStempel(k.telefon);
+    await refresh();
   }
 
-  function reset() {
+  async function reset() {
     if (!confirm('ALLE Treuekarten unwiderruflich zurücksetzen? Dies kann nicht rückgängig gemacht werden.')) return;
-    saveAlleStempel([]);
-    refresh();
+    await loescheAlleStempel();
+    await refresh();
   }
 
   return (
@@ -147,8 +159,17 @@ export default function TreueUebersicht() {
         )}
       </div>
 
+      {/* Fehler-Banner */}
+      {fehler && (
+        <div className="mb-4 rounded-lg border border-red-500/40 bg-red-500/10 p-3 text-sm text-red-300">
+          <strong className="text-red-200">Datenbank-Fehler:</strong> {fehler}
+        </div>
+      )}
+
       {/* Tabelle */}
-      {kunden.length === 0 ? (
+      {loading && kunden.length === 0 ? (
+        <div className={`${SECTION} text-center py-12 text-zinc-500 text-sm`}>lädt…</div>
+      ) : kunden.length === 0 ? (
         <div className={`${SECTION} text-center py-12`}>
           <p className="text-zinc-400">Noch keine Treuekunden.</p>
           <p className="text-zinc-600 text-sm mt-2">
@@ -234,9 +255,8 @@ export default function TreueUebersicht() {
       )}
 
       <p className="text-xs text-zinc-600 mt-6 leading-relaxed">
-        Stempel werden automatisch bei jeder Rechnung mit hinterlegter Telefonnummer hochgezählt. Daten liegen
-        ausschließlich in diesem Browser (localStorage) — also: nicht den Browser-Cache löschen, sonst sind die
-        Treuekarten weg. Zur Sicherheit jährlich exportieren oder eine Papier-Treuekarte parallel pflegen.
+        Stempel werden automatisch bei jeder Rechnung mit hinterlegter Telefonnummer hochgezählt. Daten liegen in
+        der Supabase-Datenbank (EU Frankfurt) und sind auf allen Geräten synchron sichtbar.
       </p>
     </div>
   );

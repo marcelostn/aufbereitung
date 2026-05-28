@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import {
-  loadAlleSubscriber,
-  saveAlleSubscriber,
+  fetchAlleSubscriber,
+  loescheAlleSubscriber,
   upsertSubscriber,
   loescheSubscriber,
   toggleBestaetigt,
@@ -33,31 +33,47 @@ export default function NewsletterAdmin({ empfaenger }: Props) {
   const [name, setName] = useState('');
   const [quelle, setQuelle] = useState('Webseite');
   const [notiz, setNotiz] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [fehler, setFehler] = useState<string | null>(null);
+
+  async function refresh() {
+    setLoading(true);
+    setFehler(null);
+    try {
+      setSubs(await fetchAlleSubscriber());
+    } catch (e) {
+      setFehler(String(e));
+    } finally {
+      setLoading(false);
+    }
+  }
 
   useEffect(() => {
-    setSubs(loadAlleSubscriber());
+    void refresh();
   }, []);
 
-  const refresh = () => setSubs(loadAlleSubscriber());
-
-  function add(e: React.FormEvent) {
+  async function add(e: React.FormEvent) {
     e.preventDefault();
     if (!email.trim()) return;
-    upsertSubscriber({
-      email: email.trim(),
-      name: name.trim() || undefined,
-      quelle: quelle.trim() || undefined,
-      notiz: notiz.trim() || undefined,
-      datum: TODAY(),
-      bestaetigt: false,
-    });
-    setEmail(''); setName(''); setNotiz(''); setQuelle('Webseite');
-    setFormOpen(false);
-    refresh();
+    try {
+      await upsertSubscriber({
+        email: email.trim(),
+        name: name.trim() || undefined,
+        quelle: quelle.trim() || undefined,
+        notiz: notiz.trim() || undefined,
+        datum: TODAY(),
+        bestaetigt: false,
+      });
+      setEmail(''); setName(''); setNotiz(''); setQuelle('Webseite');
+      setFormOpen(false);
+      await refresh();
+    } catch (err) {
+      setFehler(String(err));
+    }
   }
 
   function downloadCsv() {
-    const csv = exportiereCsv();
+    const csv = exportiereCsv(subs);
     const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -67,21 +83,21 @@ export default function NewsletterAdmin({ empfaenger }: Props) {
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
 
-  function reset() {
+  async function reset() {
     if (!confirm('ALLE Newsletter-Subscriber unwiderruflich löschen? Dies kann nicht rückgängig gemacht werden.')) return;
-    saveAlleSubscriber([]);
-    refresh();
+    await loescheAlleSubscriber();
+    await refresh();
   }
 
-  function deleteOne(email: string) {
+  async function deleteOne(email: string) {
     if (!confirm(`Subscriber ${email} wirklich löschen?`)) return;
-    loescheSubscriber(email);
-    refresh();
+    await loescheSubscriber(email);
+    await refresh();
   }
 
-  function toggle(email: string) {
-    toggleBestaetigt(email);
-    refresh();
+  async function toggle(email: string) {
+    await toggleBestaetigt(email);
+    await refresh();
   }
 
   const gefiltert = suche.trim()
@@ -255,8 +271,17 @@ export default function NewsletterAdmin({ empfaenger }: Props) {
         )}
       </div>
 
+      {/* Fehler-Banner */}
+      {fehler && (
+        <div className="mb-4 rounded-lg border border-red-500/40 bg-red-500/10 p-3 text-sm text-red-300">
+          <strong className="text-red-200">Datenbank-Fehler:</strong> {fehler}
+        </div>
+      )}
+
       {/* Liste */}
-      {subs.length === 0 ? (
+      {loading && subs.length === 0 ? (
+        <div className={`${SECTION} text-center py-12 text-zinc-500 text-sm`}>lädt…</div>
+      ) : subs.length === 0 ? (
         <div className={`${SECTION} text-center py-12`}>
           <p className="text-zinc-400">Noch keine Subscriber.</p>
           <p className="text-zinc-600 text-sm mt-2 max-w-md mx-auto leading-relaxed">
@@ -327,8 +352,8 @@ export default function NewsletterAdmin({ empfaenger }: Props) {
       )}
 
       <p className="text-xs text-zinc-600 mt-6 leading-relaxed">
-        Daten liegen ausschließlich in diesem Browser (localStorage). Vor Browser-Cache-Löschen unbedingt
-        CSV exportieren! Für echten Versand (Newsletter-Tool mit Tracking, Abmelde-Link, automatischer DOI):
+        Daten liegen in der Supabase-Datenbank (EU Frankfurt) und sind auf allen Geräten synchron sichtbar.
+        Für echten Versand (Newsletter-Tool mit Tracking, Abmelde-Link, automatischer DOI):
         <a href="https://www.brevo.com/de/" target="_blank" rel="noopener" className="text-amber-400 hover:text-amber-300 ml-1 underline">
           Brevo
         </a>

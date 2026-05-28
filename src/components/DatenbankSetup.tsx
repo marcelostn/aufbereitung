@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 interface TabelleStatus {
   exists: boolean;
@@ -13,12 +13,63 @@ interface CheckResult {
   hinweis?: string;
 }
 
+interface BereichErgebnis {
+  imported: number;
+  skipped: number;
+  errors: string[];
+}
+interface TreueErgebnis extends BereichErgebnis {
+  einloesungen: number;
+}
+interface MigrationsErgebnis {
+  treue: TreueErgebnis;
+  newsletter: BereichErgebnis;
+  rechnungen: BereichErgebnis;
+  lager_verbrauch: BereichErgebnis;
+  lager_anlagen: BereichErgebnis;
+}
+
 const SECTION = 'bg-zinc-900 border border-zinc-800 rounded-xl p-5';
 const SQL_PATH = '/sql/schema.sql'; // wird per public/sql geliefert
+
+// localStorage-Keys, die wir migrieren (müssen synchron zu lib/treue.ts, lib/newsletter.ts, RechnungsGenerator.tsx, LagerManager.tsx bleiben)
+const LS_KEYS = {
+  treue: 'treue_stempel_v1',
+  newsletter: 'newsletter_subscriber_v1',
+  rechnungen: 'rechnungen_archiv_v1',
+  lager_verbrauch: 'lager_verbrauch_v3',
+  lager_anlagen: 'lager_anlagen_v3',
+} as const;
+
+function readLs<T>(key: string): T[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const s = window.localStorage.getItem(key);
+    if (!s) return [];
+    const v = JSON.parse(s);
+    return Array.isArray(v) ? (v as T[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+interface VorschauZahlen {
+  treue: number;
+  newsletter: number;
+  rechnungen: number;
+  lager_verbrauch: number;
+  lager_anlagen: number;
+}
 
 export default function DatenbankSetup() {
   const [check, setCheck] = useState<CheckResult | null>(null);
   const [loading, setLoading] = useState(true);
+  const [vorschau, setVorschau] = useState<VorschauZahlen | null>(null);
+  const [migration, setMigration] = useState<{
+    state: 'idle' | 'sending' | 'done' | 'error';
+    ergebnis?: MigrationsErgebnis;
+    fehler?: string;
+  }>({ state: 'idle' });
 
   async function refresh() {
     setLoading(true);
@@ -35,7 +86,53 @@ export default function DatenbankSetup() {
 
   useEffect(() => {
     refresh();
+    // Vorschau-Zahlen aus localStorage (lokal pro Browser)
+    setVorschau({
+      treue: readLs(LS_KEYS.treue).length,
+      newsletter: readLs(LS_KEYS.newsletter).length,
+      rechnungen: readLs(LS_KEYS.rechnungen).length,
+      lager_verbrauch: readLs(LS_KEYS.lager_verbrauch).length,
+      lager_anlagen: readLs(LS_KEYS.lager_anlagen).length,
+    });
   }, []);
+
+  const gesamtVorschau = useMemo(
+    () =>
+      vorschau
+        ? vorschau.treue + vorschau.newsletter + vorschau.rechnungen + vorschau.lager_verbrauch + vorschau.lager_anlagen
+        : 0,
+    [vorschau]
+  );
+
+  async function migrieren() {
+    setMigration({ state: 'sending' });
+    try {
+      const payload = {
+        treue: readLs(LS_KEYS.treue),
+        newsletter: readLs(LS_KEYS.newsletter),
+        rechnungen: readLs(LS_KEYS.rechnungen),
+        lager_verbrauch: readLs(LS_KEYS.lager_verbrauch),
+        lager_anlagen: readLs(LS_KEYS.lager_anlagen),
+      };
+      const res = await fetch('/api/migration', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        const txt = await res.text();
+        setMigration({ state: 'error', fehler: `HTTP ${res.status}: ${txt}` });
+        return;
+      }
+      const data = (await res.json()) as { ok: boolean; ergebnis: MigrationsErgebnis };
+      setMigration({ state: 'done', ergebnis: data.ergebnis });
+      // Counts in Status-Übersicht aktualisieren
+      void refresh();
+    } catch (e) {
+      setMigration({ state: 'error', fehler: String(e) });
+    }
+  }
 
   const statusFarbe = (s?: string) =>
     s === 'ok'
@@ -217,13 +314,123 @@ SUPABASE_SERVICE_ROLE_KEY = eyJhbGciOi...`}</pre>
               <h3 className="font-bold text-zinc-100 mb-2">Status prüfen</h3>
               <p className="text-sm text-zinc-400 leading-relaxed">
                 Nach dem Redeploy: oben auf <strong className="text-zinc-200">„erneut prüfen"</strong> klicken.
-                Sobald der Status grün <code className="bg-zinc-800 px-1 rounded text-xs">✓ Bereit</code> zeigt, kann die Migration der bestehenden lokalen Daten starten —
-                dafür baue ich dir einen <strong className="text-zinc-200">„localStorage → Datenbank"</strong>-Migrations-Knopf, sobald die Verbindung steht.
+                Sobald der Status grün <code className="bg-zinc-800 px-1 rounded text-xs">✓ Bereit</code> zeigt, erscheint unten die
+                Migrations-Sektion, um die in diesem Browser vorhandenen lokalen Daten in die Datenbank zu übertragen.
               </p>
             </div>
           </div>
         </div>
       </div>
+
+      {/* ── Migration: localStorage → Supabase ───────────────────────────── */}
+      {check?.status === 'ok' && vorschau && (
+        <div className="mt-10">
+          <h2 className="text-lg font-bold text-zinc-100 mb-2">Daten aus diesem Browser in die Datenbank übertragen</h2>
+          <p className="text-sm text-zinc-400 leading-relaxed mb-4 max-w-2xl">
+            Die folgenden Einträge liegen aktuell nur im <strong className="text-zinc-200">localStorage dieses Browsers</strong>.
+            Übertragung schreibt sie nach Supabase, sodass sie auf jedem Gerät sichtbar sind.
+            Wiederholbar — bestehende Einträge werden überschrieben, nicht dupliziert.
+          </p>
+
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 mb-4">
+            {[
+              { label: 'Treuekunden', n: vorschau.treue },
+              { label: 'Newsletter', n: vorschau.newsletter },
+              { label: 'Rechnungen', n: vorschau.rechnungen },
+              { label: 'Verbrauch', n: vorschau.lager_verbrauch },
+              { label: 'Anlagen', n: vorschau.lager_anlagen },
+            ].map((b) => (
+              <div
+                key={b.label}
+                className={`rounded-lg border px-3 py-2 text-center ${
+                  b.n > 0
+                    ? 'bg-amber-500/10 border-amber-500/40 text-amber-200'
+                    : 'bg-zinc-900 border-zinc-800 text-zinc-500'
+                }`}
+              >
+                <div className="text-2xl font-bold tabular-nums">{b.n}</div>
+                <div className="text-xs uppercase tracking-wider opacity-80">{b.label}</div>
+              </div>
+            ))}
+          </div>
+
+          {gesamtVorschau === 0 ? (
+            <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-4 text-sm text-zinc-400">
+              In diesem Browser sind keine lokalen Daten gespeichert — entweder ist alles schon migriert oder du hast
+              hier noch keine Treuekunden / Newsletter-Anmeldungen / Rechnungen / Lager-Einträge angelegt.
+            </div>
+          ) : (
+            <div className={SECTION}>
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <p className="text-sm text-zinc-300">
+                  Insgesamt <strong className="text-amber-300">{gesamtVorschau}</strong> Einträge bereit zur Übertragung.
+                </p>
+                <button
+                  onClick={migrieren}
+                  disabled={migration.state === 'sending'}
+                  className="bg-amber-500 hover:bg-amber-400 disabled:opacity-50 disabled:cursor-wait text-zinc-950 font-bold px-5 py-2.5 rounded-lg text-sm transition-colors"
+                >
+                  {migration.state === 'sending' ? 'überträgt…' : 'Jetzt übertragen'}
+                </button>
+              </div>
+
+              {migration.state === 'error' && (
+                <div className="mt-4 rounded-lg border border-red-500/40 bg-red-500/10 p-3 text-sm text-red-300">
+                  <strong className="text-red-200">Fehler:</strong> {migration.fehler}
+                </div>
+              )}
+
+              {migration.state === 'done' && migration.ergebnis && (
+                <div className="mt-4 space-y-2">
+                  <div className="rounded-lg border border-green-500/40 bg-green-500/10 p-3 text-sm text-green-300">
+                    <strong className="text-green-200">Fertig.</strong> Die Daten liegen jetzt in Supabase. Die einzelnen Bereiche
+                    (Treue, Newsletter, Rechnungen, Lager) lesen aktuell noch aus localStorage und werden in den nächsten Schritten
+                    auf die Datenbank umgestellt.
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                    {(
+                      [
+                        ['Treuekunden', migration.ergebnis.treue, ` + ${migration.ergebnis.treue.einloesungen} Einlösungen`],
+                        ['Newsletter', migration.ergebnis.newsletter, ''],
+                        ['Rechnungen', migration.ergebnis.rechnungen, ''],
+                        ['Verbrauchsmittel', migration.ergebnis.lager_verbrauch, ''],
+                        ['Anlagegüter', migration.ergebnis.lager_anlagen, ''],
+                      ] as [string, BereichErgebnis, string][]
+                    ).map(([label, b, suffix]) => {
+                      const hatFehler = b.errors.length > 0;
+                      return (
+                        <div
+                          key={label}
+                          className={`rounded-lg border px-3 py-2 ${
+                            hatFehler
+                              ? 'bg-red-500/5 border-red-500/30 text-red-300'
+                              : 'bg-zinc-900 border-zinc-800 text-zinc-300'
+                          }`}
+                        >
+                          <div className="font-bold text-zinc-200">{label}</div>
+                          <div className="opacity-80">
+                            {b.imported} übertragen{suffix}
+                            {b.skipped > 0 && ` · ${b.skipped} übersprungen`}
+                            {hatFehler && ` · ${b.errors.length} Fehler`}
+                          </div>
+                          {hatFehler && (
+                            <ul className="mt-1 text-[10px] list-disc ml-4 opacity-90">
+                              {b.errors.slice(0, 3).map((err, i) => (
+                                <li key={i}>{err}</li>
+                              ))}
+                              {b.errors.length > 3 && <li>… und {b.errors.length - 3} weitere</li>}
+                            </ul>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
 
       <p className="text-xs text-zinc-600 mt-8 leading-relaxed text-center">
         Bei Problemen: Status oben kopieren und sagen — ich helfe direkt.<br />
