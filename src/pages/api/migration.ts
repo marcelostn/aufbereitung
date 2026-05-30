@@ -278,12 +278,6 @@ export const POST: APIRoute = async ({ request }) => {
       continue;
     }
     try {
-      // nachbestellmenge + lieferant passen nicht ins Schema → ans Notiz-Feld anhängen
-      const extras: string[] = [];
-      if (v.lieferant) extras.push(`Lieferant: ${v.lieferant}`);
-      if (v.nachbestellmenge) extras.push(`Nachbestellmenge: ${v.nachbestellmenge}`);
-      const notiz = [v.notizen ?? '', ...extras].filter(Boolean).join(' · ');
-
       const { error } = await supabase
         .from('lager_verbrauchsmittel')
         .upsert(
@@ -293,9 +287,11 @@ export const POST: APIRoute = async ({ request }) => {
             einheit: v.einheit ?? 'Stück',
             bestand: Number(v.bestand) || 0,
             mindestbestand: Number(v.mindestbestand) || 0,
+            nachbestellmenge: Number(v.nachbestellmenge) || 0,
             preis_brutto: Number(v.preisProEinheit) || 0,
+            lieferant: v.lieferant ?? '',
             bestelllink: v.bestellLink ?? '',
-            notiz,
+            notiz: v.notizen ?? '',
             sortierung: i,
           },
           { onConflict: 'schluessel' }
