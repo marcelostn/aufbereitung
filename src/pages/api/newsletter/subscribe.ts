@@ -67,17 +67,25 @@ function clientIp(request: Request): string {
 }
 
 // ── Resend DOI-Mail ───────────────────────────────────────────────────────
-const RESEND_API_KEY =
-  import.meta.env.RESEND_API_KEY ?? process.env.RESEND_API_KEY ?? '';
-const FROM_EMAIL =
+// .trim() überall: in Vercel/IONOS gesetzte Werte enthalten leicht versehentlich
+// Leerzeichen/Zeilenumbrüche am Rand. Ein Leerzeichen in BASE_URL zerschießt sonst
+// den Bestätigungs-Link in der Mail (…de␣/newsletter → kaputt).
+const RESEND_API_KEY = (
+  import.meta.env.RESEND_API_KEY ?? process.env.RESEND_API_KEY ?? ''
+).trim();
+const FROM_EMAIL = (
   import.meta.env.NEWSLETTER_FROM ??
   process.env.NEWSLETTER_FROM ??
-  'info@glanzwerk-cloppenburg.de';
+  'info@glanzwerk-cloppenburg.de'
+).trim();
 const FROM_NAME = 'Glanzwerk Cloppenburg';
-const BASE_URL =
+const BASE_URL = (
   import.meta.env.PUBLIC_BASE_URL ??
   process.env.PUBLIC_BASE_URL ??
-  'https://glanzwerk-cloppenburg.de';
+  'https://www.glanzwerk-cloppenburg.de'
+)
+  .trim()
+  .replace(/\/+$/, '');
 
 async function sendDoiMail(email: string, name: string, token: string): Promise<boolean> {
   if (!RESEND_API_KEY) return false;
