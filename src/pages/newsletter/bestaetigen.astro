@@ -1,8 +1,31 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import { getSupabase } from '../../lib/supabase-server';
+import { Resend } from 'resend';
 
 export const prerender = false;
+
+const RESEND_API_KEY = import.meta.env.RESEND_API_KEY ?? process.env.RESEND_API_KEY ?? '';
+const RESEND_AUDIENCE_ID =
+  import.meta.env.RESEND_AUDIENCE_ID ?? process.env.RESEND_AUDIENCE_ID ?? '';
+
+// Bestätigten Abonnenten als Kontakt in die Resend-Audience aufnehmen, damit er
+// künftige Broadcasts (im Resend-Dashboard erstellt) bekommt. No-op, solange
+// RESEND_AUDIENCE_ID nicht gesetzt ist — bricht die Bestätigung nie ab.
+async function addToAudience(email: string, name: string): Promise<void> {
+  if (!RESEND_API_KEY || !RESEND_AUDIENCE_ID) return;
+  try {
+    const resend = new Resend(RESEND_API_KEY);
+    await resend.contacts.create({
+      audienceId: RESEND_AUDIENCE_ID,
+      email,
+      firstName: name || undefined,
+      unsubscribed: false,
+    });
+  } catch (err) {
+    console.warn('[resend] audience add failed', err);
+  }
+}
 
 const url = new URL(Astro.request.url);
 const token = (url.searchParams.get('token') ?? '').trim();
@@ -20,9 +43,9 @@ if (looksLikeToken) {
   } else {
     const { data, error: selErr } = await supabase
       .from('newsletter_subscriber')
-      .select('email')
+      .select('email, name')
       .eq('doi_token', token)
-      .maybeSingle<{ email: string }>();
+      .maybeSingle<{ email: string; name: string | null }>();
 
     if (selErr) {
       status = 'error';
@@ -34,7 +57,12 @@ if (looksLikeToken) {
         .from('newsletter_subscriber')
         .update({ bestaetigt: true, doi_token: null })
         .eq('doi_token', token);
-      status = updErr ? 'error' : 'success';
+      if (updErr) {
+        status = 'error';
+      } else {
+        status = 'success';
+        await addToAudience(data.email, data.name ?? '');
+      }
     }
   }
 }
