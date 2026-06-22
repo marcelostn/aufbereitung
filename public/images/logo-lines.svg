@@ -61,11 +61,11 @@
   <!--   WORDMARK     -->
   <!-- ═══════════════ -->
 
-  <!-- Firmenname: "Auto" weiß + "Care" amber – Platzhalter -->
+  <!-- Firmenname: "Glanz" weiß + "werk" gold -->
   <text x="62" y="30"
         font-family="Inter, 'Arial Narrow', Arial, sans-serif"
-        font-weight="900" font-size="22" letter-spacing="-0.5">
-    <tspan fill="white">Auto</tspan><tspan fill="#fbbf24">Care</tspan>
+        font-weight="900" font-size="21" letter-spacing="-0.5">
+    <tspan fill="white">Glanz</tspan><tspan fill="#fbbf24">werk</tspan>
   </text>
 
   <!-- Dünne Trennlinie -->

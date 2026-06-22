@@ -182,6 +182,181 @@ const TIERHAARE_KARTEN: { wert: TierhaarStufe; label: string; aufpreis: string |
   { wert: 'stark',  label: 'Stark',     aufpreis: '+45 €' },
 ];
 
+interface TerminWunsch {
+  startDatum: string;
+  startZeit: string;
+  nachricht: string;
+}
+const LEERER_TERMIN: TerminWunsch = { startDatum: '', startZeit: '', nachricht: '' };
+
+interface TagSlots { datum: string; wochentag: string; slots: string[] }
+
+const MONATE = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
+const WDH = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
+const pad2 = (n: number) => String(n).padStart(2, '0');
+
+// Tag- + Slot-Auswahl als Monatskalender, holt freie Termine vom Server (/api/termin/slots)
+function TerminAuswahl({
+  gruppe, paketKey, value, onChange, onDauer,
+}: {
+  gruppe: string;
+  paketKey: string;
+  value: { datum: string; zeit: string };
+  onChange: (v: { datum: string; zeit: string }) => void;
+  onDauer: (min: number) => void;
+}) {
+  const [tage, setTage] = useState<TagSlots[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [fehler, setFehler] = useState('');
+  const [monat, setMonat] = useState<{ jahr: number; monat: number } | null>(null);
+
+  useEffect(() => {
+    let aktiv = true;
+    setLoading(true);
+    setFehler('');
+    fetch(`/api/termin/slots?gruppe=${encodeURIComponent(gruppe)}&paket=${encodeURIComponent(paketKey)}`)
+      .then((r) => r.json())
+      .then((d) => {
+        if (!aktiv) return;
+        if (!d.ok) throw new Error(d.error || 'Fehler');
+        const liste: TagSlots[] = d.tage ?? [];
+        setTage(liste);
+        onDauer(d.dauerMin ?? 0);
+        if (liste.length > 0) {
+          const [y, m] = liste[0].datum.split('-').map(Number);
+          setMonat({ jahr: y, monat: m - 1 });
+        }
+      })
+      .catch((e) => { if (aktiv) setFehler(e instanceof Error ? e.message : 'Fehler'); })
+      .finally(() => { if (aktiv) setLoading(false); });
+    return () => { aktiv = false; };
+  }, [gruppe, paketKey]);
+
+  if (loading) return <p className="text-center text-zinc-500 text-sm py-6">Freie Termine werden geladen …</p>;
+  if (fehler) return <p className="text-center text-red-400 text-sm py-6">Termine konnten nicht geladen werden. Bitte ruf uns kurz an.</p>;
+  if (tage.length === 0 || !monat)
+    return (
+      <div className="rounded-2xl border border-amber-500/30 bg-amber-500/5 p-6 text-center text-sm text-zinc-300">
+        Aktuell sind online keine freien Termine für dieses Paket verfügbar. Bitte ruf uns kurz an – wir finden einen Termin.
+      </div>
+    );
+
+  const verfuegbar = new Map(tage.map((t) => [t.datum, t.slots]));
+  const datums = tage.map((t) => t.datum);
+  const monIndex = (iso: string) => { const [y, m] = iso.split('-').map(Number); return y * 12 + (m - 1); };
+  const aktMonIndex = monat.jahr * 12 + monat.monat;
+  const kannZurueck = aktMonIndex > monIndex(datums[0]);
+  const kannVor = aktMonIndex < monIndex(datums[datums.length - 1]);
+
+  const offset = (new Date(monat.jahr, monat.monat, 1).getDay() + 6) % 7; // Mo = 0
+  const tageImMonat = new Date(monat.jahr, monat.monat + 1, 0).getDate();
+  const zellen: (number | null)[] = [
+    ...Array(offset).fill(null),
+    ...Array.from({ length: tageImMonat }, (_, i) => i + 1),
+  ];
+
+  const aktiverTag = verfuegbar.has(value.datum) ? value.datum : '';
+  const aktiveSlots = aktiverTag ? verfuegbar.get(aktiverTag) ?? [] : [];
+
+  const wechsel = (delta: number) => {
+    const idx = monat.monat + delta;
+    setMonat({ jahr: monat.jahr + Math.floor(idx / 12), monat: ((idx % 12) + 12) % 12 });
+  };
+
+  const slotDatumLabel = aktiverTag
+    ? new Date(aktiverTag + 'T00:00:00').toLocaleDateString('de-DE', { weekday: 'long', day: '2-digit', month: '2-digit' })
+    : '';
+
+  return (
+    <div className="space-y-5">
+      {/* Kalender */}
+      <div>
+        <div className="flex items-center justify-between mb-3">
+          <button
+            type="button"
+            onClick={() => wechsel(-1)}
+            disabled={!kannZurueck}
+            aria-label="Voriger Monat"
+            className="w-9 h-9 rounded-lg border border-zinc-700 bg-zinc-800 text-zinc-200 flex items-center justify-center cursor-pointer hover:border-amber-500/50 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+          >
+            ‹
+          </button>
+          <p className="text-sm font-bold text-zinc-100">{MONATE[monat.monat]} {monat.jahr}</p>
+          <button
+            type="button"
+            onClick={() => wechsel(1)}
+            disabled={!kannVor}
+            aria-label="Nächster Monat"
+            className="w-9 h-9 rounded-lg border border-zinc-700 bg-zinc-800 text-zinc-200 flex items-center justify-center cursor-pointer hover:border-amber-500/50 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+          >
+            ›
+          </button>
+        </div>
+
+        <div className="grid grid-cols-7 gap-1 mb-1">
+          {WDH.map((w) => (
+            <div key={w} className="text-center text-[11px] font-medium text-zinc-500 py-1">{w}</div>
+          ))}
+        </div>
+
+        <div className="grid grid-cols-7 gap-1">
+          {zellen.map((d, i) => {
+            if (d === null) return <div key={`l${i}`} />;
+            const datum = `${monat.jahr}-${pad2(monat.monat + 1)}-${pad2(d)}`;
+            const frei = verfuegbar.has(datum);
+            const gewaehlt = value.datum === datum;
+            return (
+              <button
+                type="button"
+                key={datum}
+                disabled={!frei}
+                onClick={() => onChange({ datum, zeit: '' })}
+                className={`aspect-square rounded-lg text-sm flex items-center justify-center transition-all duration-150 ${
+                  gewaehlt
+                    ? 'bg-amber-500 text-zinc-900 font-bold'
+                    : frei
+                      ? 'bg-zinc-800 text-zinc-100 ring-1 ring-amber-500/40 hover:ring-amber-500 cursor-pointer'
+                      : 'text-zinc-700 cursor-default'
+                }`}
+              >
+                {d}
+              </button>
+            );
+          })}
+        </div>
+
+        <p className="text-[11px] text-zinc-500 mt-2 flex items-center gap-1.5">
+          <span className="inline-block w-3 h-3 rounded ring-1 ring-amber-500/50 bg-zinc-800"></span>
+          freie Tage – einfach antippen
+        </p>
+      </div>
+
+      {/* Slots des gewählten Tages */}
+      {aktiverTag && (
+        <div className="border-t border-zinc-800 pt-4">
+          <p className="text-sm font-bold text-zinc-300 mb-2">Uhrzeit am {slotDatumLabel}</p>
+          <div className="flex flex-wrap gap-2">
+            {aktiveSlots.map((slot) => {
+              const aktiv = value.zeit === slot;
+              return (
+                <button
+                  type="button"
+                  key={slot}
+                  onClick={() => onChange({ datum: aktiverTag, zeit: slot })}
+                  className={`rounded-xl px-4 py-2 border text-sm font-bold transition-all duration-200 cursor-pointer ${aktiv ? 'bg-amber-500 text-zinc-900 border-amber-500' : 'bg-zinc-800 border-zinc-700 text-zinc-100 hover:border-amber-500/40'}`}
+                >
+                  {slot} Uhr
+                </button>
+              );
+            })}
+          </div>
+          <p className="text-xs text-zinc-500 mt-2">Startzeit – wir planen die nötige Dauer automatisch ein.</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Hilfskomponenten ─────────────────────────────────────────────────────────
 
 function Check() {
@@ -462,14 +637,19 @@ function EntfernungSchritt({ entfernungKm, dispatch }: { entfernungKm: number; d
   );
 }
 
-export default function PriceCalculator({ calLink, calLinks = {}, telefon, email, web3formsKey }: Props) {
+export default function PriceCalculator({ telefon }: Props) {
   const [s, dispatch] = useReducer(reducer, init);
   const [kunde, setKunde] = useState<Kundendaten>(LEERE_KUNDENDATEN);
+  const [termin, setTermin] = useState<TerminWunsch>(LEERER_TERMIN);
+  const [dauerMin, setDauerMin] = useState(0);
+  const [honeypot, setHoneypot] = useState('');
   const [kundenStatus, setKundenStatus] = useState<'idle' | 'sending' | 'success' | 'error'>('idle');
   const [kundenFehler, setKundenFehler] = useState<string>('');
 
   const setKundenFeld = (feld: keyof Kundendaten, wert: string) =>
     setKunde((k) => ({ ...k, [feld]: wert }));
+  const setTerminFeld = (feld: keyof TerminWunsch, wert: string) =>
+    setTermin((t) => ({ ...t, [feld]: wert }));
 
   // Kundendaten beim Wechsel auf Schritt 6 aus localStorage laden (Komfort)
   useEffect(() => {
@@ -481,90 +661,76 @@ export default function PriceCalculator({ calLink, calLinks = {}, telefon, email
     }
   }, [s.schritt]);
 
+  function aufpreisListe(): string[] {
+    const a: string[] = [];
+    if (s.tierhaare !== 'keine') a.push(`Tierhaare ${s.tierhaare}`);
+    if (s.kindersitze > 0) a.push(`${s.kindersitze} Kindersitz${s.kindersitze > 1 ? 'e' : ''}`);
+    if (s.nikotin) a.push('Nikotingeruch');
+    if (s.spezial.maeusekot) a.push('Mäusekot/Nagerbefall');
+    if (s.spezial.extremeVerschmutzung) a.push('Extreme Verschmutzung');
+    if (s.spezial.schimmel) a.push('Schimmel/Feuchtigkeit');
+    if (s.spezial.lebensmittel) a.push('Lebensmittel-/Bioabfall-Reste');
+    return a;
+  }
+
   async function kundenAbsenden(e: React.FormEvent) {
     e.preventDefault();
     if (!s.ergebnis) return;
+    if (!termin.startDatum || !termin.startZeit) {
+      setKundenFehler('Bitte oben einen Tag und eine Uhrzeit wählen.');
+      setKundenStatus('error');
+      return;
+    }
     setKundenStatus('sending');
     setKundenFehler('');
 
     const paketName = s.fahrzeugGruppe === 'pkw' ? PKW_PAKETE[s.pkwPaket].name : LKW_PAKETE[s.lkwPaket].name;
-    const aufpreisTexte: string[] = [];
-    if (s.tierhaare !== 'keine') aufpreisTexte.push(`Tierhaare ${s.tierhaare}`);
-    if (s.kindersitze > 0) aufpreisTexte.push(`${s.kindersitze} Kindersitz${s.kindersitze > 1 ? 'e' : ''}`);
-    if (s.nikotin) aufpreisTexte.push('Nikotingeruch');
-    if (s.spezial.maeusekot) aufpreisTexte.push('Mäusekot/Nagerbefall');
-    if (s.spezial.extremeVerschmutzung) aufpreisTexte.push('Extreme Verschmutzung');
-    if (s.spezial.schimmel) aufpreisTexte.push('Schimmel/Feuchtigkeit');
-    if (s.spezial.lebensmittel) aufpreisTexte.push('Lebensmittel-/Bioabfall-Reste');
+    const paketKey = s.fahrzeugGruppe === 'pkw' ? s.pkwPaket : s.lkwPaket;
 
-    // Prefill-Link für 1-Klick-Rechnung im Admin
-    const origin = typeof window !== 'undefined' ? window.location.origin : '';
-    const prefillParams = new URLSearchParams({
-      vorname: kunde.vorname,
-      nachname: kunde.nachname,
+    // Backup der Kundendaten (Komfort beim nächsten Mal)
+    try { localStorage.setItem('kundendaten_v1', JSON.stringify(kunde)); } catch {}
+
+    const payload = {
+      name: `${kunde.vorname} ${kunde.nachname}`.trim(),
+      telefon: kunde.telefon,
+      email: kunde.email,
       strasse: kunde.strasse,
       plz: kunde.plz,
       ort: kunde.ort,
-      kEmail: kunde.email,
-      kTelefon: kunde.telefon,
-      fahrzeug: kunde.kennzeichen,
+      kennzeichen: kunde.kennzeichen,
+      wunschDatum: termin.startDatum,
+      startZeit: termin.startZeit,
+      paketKey,
+      fahrzeugGruppe: s.fahrzeugGruppe,
       paket: paketName,
-      preis: s.ergebnis.gesamt.toFixed(2),
-    });
-    const rechnungUrl = `${origin}/admin/rechnung?${prefillParams.toString()}`;
+      reinigungsort: s.reinigungsort ?? '',
+      aufpreise: aufpreisListe().join(', '),
+      entfernungKm: s.reinigungsort === 'vorort' ? s.entfernungKm : 0,
+      preis: s.ergebnis.gesamt,
+      notiz: termin.nachricht,
+      honeypot,
+    };
 
-    const zeilen = [
-      `Neue Terminanfrage Autoaufbereitung`,
-      ``,
-      `── Kunde ──`,
-      `Name: ${kunde.vorname} ${kunde.nachname}`,
-      `Telefon: ${kunde.telefon}`,
-      `E-Mail: ${kunde.email}`,
-      `Adresse: ${kunde.strasse}, ${kunde.plz} ${kunde.ort}`,
-      kunde.kennzeichen ? `Fahrzeug/Kennzeichen: ${kunde.kennzeichen}` : '',
-      ``,
-      `── Leistung ──`,
-      `Paket: ${paketName}`,
-      `Reinigungsort: ${s.reinigungsort === 'beiuns' ? 'Bei uns in Cloppenburg' : 'Vor Ort beim Kunden'}`,
-      aufpreisTexte.length ? `Aufpreise: ${aufpreisTexte.join(', ')}` : '',
-      s.reinigungsort === 'vorort' && s.entfernungKm > 0 ? `Entfernung: ${s.entfernungKm} km` : '',
-      `Preis: ${eur(s.ergebnis.gesamt)} (inkl. MwSt.)`,
-      ``,
-      `── Rechnung erstellen ──`,
-      `Direkt-Link (Login nötig): ${rechnungUrl}`,
-    ].filter(Boolean).join('\n');
-
-    // Backup in localStorage
-    try { localStorage.setItem('kundendaten_v1', JSON.stringify(kunde)); } catch {}
-
-    if (web3formsKey) {
-      try {
-        const res = await fetch('https://api.web3forms.com/submit', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-          body: JSON.stringify({
-            access_key: web3formsKey,
-            subject: `Terminanfrage: ${kunde.vorname} ${kunde.nachname} – ${paketName}`,
-            from_name: `${kunde.vorname} ${kunde.nachname}`,
-            email: kunde.email || email,
-            replyto: kunde.email || undefined,
-            message: zeilen,
-          }),
-        });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const data = await res.json();
-        if (!data.success) throw new Error(data.message || 'Unbekannter Fehler');
-        setKundenStatus('success');
-      } catch (err) {
-        setKundenFehler(err instanceof Error ? err.message : 'Versand fehlgeschlagen');
-        setKundenStatus('error');
+    try {
+      const res = await fetch('/api/termin/anfrage', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.ok) {
+        const map: Record<string, string> = {
+          rate_limited: 'Zu viele Anfragen in kurzer Zeit. Bitte später erneut versuchen oder anrufen.',
+          invalid_input: 'Bitte Name, Telefon, gültige E-Mail sowie Tag und Uhrzeit angeben.',
+          slot_weg: 'Dieser Termin wurde gerade vergeben. Bitte wähle oben einen anderen Slot.',
+          not_configured: 'Buchung gerade nicht verfügbar. Bitte ruf uns kurz an.',
+        };
+        throw new Error(map[data.error] ?? data.error ?? `HTTP ${res.status}`);
       }
-    } else {
-      // Kein Web3Forms-Key → mailto-Fallback (User-Mailprogramm öffnen)
-      const subject = encodeURIComponent(`Terminanfrage: ${kunde.vorname} ${kunde.nachname} – ${paketName}`);
-      const body = encodeURIComponent(zeilen);
-      window.location.href = `mailto:${email}?subject=${subject}&body=${body}`;
       setKundenStatus('success');
+    } catch (err) {
+      setKundenFehler(err instanceof Error ? err.message : 'Senden fehlgeschlagen');
+      setKundenStatus('error');
     }
   }
 
@@ -586,10 +752,6 @@ export default function PriceCalculator({ calLink, calLinks = {}, telefon, email
       dispatch({ type: 'WEITER' }); // 2 -> 3 (Aufpreise)
     }
   }, []);
-
-  const paketKey = s.fahrzeugGruppe === 'pkw' ? s.pkwPaket : s.lkwPaket;
-  const activeCalLink = calLinks[paketKey] || calLink;
-
 
   // ─── Schritt 1: Fahrzeugtyp ────────────────────────────────────────────────
   if (s.schritt === 1) return (
@@ -814,8 +976,21 @@ export default function PriceCalculator({ calLink, calLinks = {}, telefon, email
     <EntfernungSchritt entfernungKm={s.entfernungKm} dispatch={dispatch} />
   );
 
-  // ─── Schritt 6: Ergebnis + Kalender ───────────────────────────────────────
-  if (s.schritt === 6 && s.ergebnis) return (
+  // ─── Schritt 6: Ergebnis + Terminanfrage ──────────────────────────────────
+  if (s.schritt === 6 && s.ergebnis) {
+  const paketName = s.fahrzeugGruppe === 'pkw' ? PKW_PAKETE[s.pkwPaket].name : LKW_PAKETE[s.lkwPaket].name;
+  const paketKeyAktuell = s.fahrzeugGruppe === 'pkw' ? s.pkwPaket : s.lkwPaket;
+  const slotEnde = (start: string, dur: number) => {
+    const [h, m] = start.split(':').map(Number);
+    const tot = h * 60 + m + dur;
+    return `${String(Math.floor(tot / 60)).padStart(2, '0')}:${String(tot % 60).padStart(2, '0')}`;
+  };
+  const wunschText = termin.startDatum
+    ? new Date(termin.startDatum + 'T00:00:00').toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric' }) +
+      (termin.startZeit ? ` · ${termin.startZeit}–${slotEnde(termin.startZeit, dauerMin)} Uhr` : '')
+    : '—';
+  const terminGewaehlt = !!termin.startDatum && !!termin.startZeit;
+  return (
     <div>
       <Progress schritt={s.schritt} />
 
@@ -835,6 +1010,23 @@ export default function PriceCalculator({ calLink, calLinks = {}, telefon, email
         </div>
         <p className="text-xs text-zinc-600 text-center">Festpreis · 19 % MwSt. · Aufpreise ggf. vor Ort nach Prüfung</p>
       </div>
+
+      {/* ── Terminauswahl (freie Slots vom Server) ──────────────────────── */}
+      {kundenStatus !== 'success' && (
+        <div className="max-w-2xl mx-auto mb-10">
+          <h2 className="text-2xl font-black tracking-tighter text-center mb-2">Termin wählen</h2>
+          <p className="text-zinc-400 text-center mb-6 text-sm">Such dir einen freien Tag und eine Startzeit aus – die Dauer planen wir automatisch ein.</p>
+          <div className="bg-zinc-900/60 border border-zinc-700/50 rounded-2xl p-6">
+            <TerminAuswahl
+              gruppe={s.fahrzeugGruppe}
+              paketKey={paketKeyAktuell}
+              value={{ datum: termin.startDatum, zeit: termin.startZeit }}
+              onChange={(val) => setTermin((t) => ({ ...t, startDatum: val.datum, startZeit: val.zeit }))}
+              onDauer={setDauerMin}
+            />
+          </div>
+        </div>
+      )}
 
       {/* ── Kundendaten-Formular vor dem Termin ─────────────────────────── */}
       {kundenStatus !== 'success' && (
@@ -944,6 +1136,29 @@ export default function PriceCalculator({ calLink, calLinks = {}, telefon, email
               />
             </div>
 
+            {/* Anmerkung */}
+            <div className="border-t border-zinc-700/50 pt-5">
+              <label className="block text-xs text-zinc-400 mb-1">Anmerkung (optional)</label>
+              <textarea
+                value={termin.nachricht}
+                onChange={(e) => setTerminFeld('nachricht', e.target.value)}
+                rows={2}
+                placeholder="z. B. Besonderheiten, Zugang zum Fahrzeug, Ausweichwunsch …"
+                className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2.5 text-zinc-100 text-sm focus:border-amber-500 focus:outline-none resize-none"
+              />
+            </div>
+
+            {/* Honeypot gegen Bots – für Menschen unsichtbar */}
+            <input
+              type="text"
+              tabIndex={-1}
+              autoComplete="off"
+              aria-hidden="true"
+              value={honeypot}
+              onChange={(e) => setHoneypot(e.target.value)}
+              style={{ position: 'absolute', left: '-9999px', width: 1, height: 1, opacity: 0 }}
+            />
+
             <p className="text-xs text-zinc-500 leading-relaxed">
               Ihre Daten werden ausschließlich zur Terminbestätigung und Rechnungsstellung verwendet.
               Mehr in der <a href="/datenschutz" className="text-amber-400 hover:text-amber-300 underline">Datenschutzerklärung</a>.
@@ -957,78 +1172,53 @@ export default function PriceCalculator({ calLink, calLinks = {}, telefon, email
 
             <button
               type="submit"
-              disabled={kundenStatus === 'sending'}
+              disabled={kundenStatus === 'sending' || !terminGewaehlt}
               className="btn-gold w-full font-bold py-3.5 rounded-xl cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {kundenStatus === 'sending' ? 'Wird gesendet …' : 'Daten senden & Termin wählen →'}
+              {kundenStatus === 'sending'
+                ? 'Wird gesendet …'
+                : terminGewaehlt
+                  ? `Termin anfragen: ${wunschText} →`
+                  : 'Bitte oben Tag & Uhrzeit wählen'}
             </button>
           </form>
         </div>
       )}
 
-      {/* ── Termin-Kalender erscheint nach erfolgreichem Absenden ───────── */}
-      <div className="mb-6" style={{ display: kundenStatus === 'success' ? 'block' : 'none' }}>
-        <div className="max-w-2xl mx-auto mb-6 bg-green-500/10 border border-green-500/30 rounded-xl p-4 flex items-center gap-3">
-          <svg className="w-6 h-6 text-green-400 shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
-          </svg>
-          <div>
-            <p className="font-bold text-green-200">Daten gesendet</p>
-            <p className="text-sm text-green-300/80">Wählen Sie jetzt unten Ihren Wunschtermin – wir bestätigen ihn schnellstmöglich.</p>
+      {/* ── Bestätigung nach erfolgreicher Anfrage ──────────────────────── */}
+      {kundenStatus === 'success' && (
+        <div className="max-w-2xl mx-auto mb-8">
+          <div className="bg-green-500/10 border border-green-500/30 rounded-2xl p-8 text-center">
+            <svg className="w-14 h-14 text-green-400 mx-auto mb-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+            </svg>
+            <h2 className="text-2xl font-black tracking-tighter mb-2">Anfrage gesendet!</h2>
+            <p className="text-zinc-300 leading-relaxed mb-5">
+              {kunde.vorname ? `Danke, ${kunde.vorname}! ` : 'Danke! '}
+              Wir haben deine Terminanfrage erhalten und melden uns schnellstmöglich
+              zur Bestätigung – meist innerhalb von 24 Stunden.
+            </p>
+            <div className="bg-zinc-900/60 border border-zinc-700/50 rounded-xl p-4 text-left text-sm space-y-2 max-w-sm mx-auto mb-5">
+              <div className="flex justify-between gap-4">
+                <span className="text-zinc-500 shrink-0">Wunschtermin</span>
+                <span className="text-zinc-200 font-semibold text-right">{wunschText}</span>
+              </div>
+              <div className="flex justify-between gap-4">
+                <span className="text-zinc-500 shrink-0">Leistung</span>
+                <span className="text-zinc-200 font-semibold text-right">{paketName}</span>
+              </div>
+              <div className="flex justify-between gap-4 border-t border-zinc-700/60 pt-2">
+                <span className="text-zinc-500 shrink-0">Preis inkl. MwSt.</span>
+                <span className="text-amber-400 font-bold text-right">{eur(s.ergebnis.gesamt)}</span>
+              </div>
+            </div>
+            <p className="text-sm text-zinc-500 leading-relaxed">
+              {kunde.email && <>Eine Bestätigungs-Mail ist unterwegs an <span className="text-zinc-400">{kunde.email}</span>.<br /></>}
+              Lieber direkt? <a href={`tel:${telefon}`} className="text-amber-400 hover:underline">{telefon}</a>
+            </p>
           </div>
         </div>
-
-        <h2 className="text-2xl font-black tracking-tighter text-center mb-2">Jetzt Termin buchen</h2>
-        <p className="text-zinc-400 text-center mb-6 text-sm">Wählen Sie einen freien Tag — Ihre Leistung wird automatisch übertragen</p>
-        {activeCalLink && s.ergebnis ? (() => {
-          const paketName = s.fahrzeugGruppe === 'pkw' ? PKW_PAKETE[s.pkwPaket].name : LKW_PAKETE[s.lkwPaket].name;
-          const aufpreisTexte: string[] = [];
-          if (s.tierhaare !== 'keine') aufpreisTexte.push(`Tierhaare ${s.tierhaare}`);
-          if (s.kindersitze > 0) aufpreisTexte.push(`${s.kindersitze} Kindersitz${s.kindersitze > 1 ? 'e' : ''}`);
-          if (s.nikotin) aufpreisTexte.push('Nikotingeruch');
-          if (s.spezial.maeusekot) aufpreisTexte.push('Mäusekot/Nagerbefall');
-          if (s.spezial.extremeVerschmutzung) aufpreisTexte.push('Extreme Verschmutzung');
-          if (s.spezial.schimmel) aufpreisTexte.push('Schimmel/Feuchtigkeit');
-          if (s.spezial.lebensmittel) aufpreisTexte.push('Lebensmittel-/Bioabfall-Reste');
-          const notiz = [
-            `Leistung: ${paketName}`,
-            s.reinigungsort === 'beiuns' ? 'Bei uns in Cloppenburg' : 'Vor Ort beim Kunden',
-            aufpreisTexte.length ? aufpreisTexte.join(', ') : null,
-            s.reinigungsort === 'vorort' && s.entfernungKm > 0 ? `${s.entfernungKm} km` : null,
-            `Preis: ${eur(s.ergebnis.gesamt)}`,
-            kunde.strasse ? `Adresse: ${kunde.strasse}, ${kunde.plz} ${kunde.ort}` : null,
-            kunde.telefon ? `Tel: ${kunde.telefon}` : null,
-            kunde.kennzeichen ? `Fahrzeug: ${kunde.kennzeichen}` : null,
-          ].filter(Boolean).join(' | ');
-          // Cal.eu nimmt Vorname/Nachname/Email vorab entgegen
-          const calParams = new URLSearchParams({
-            notes: notiz,
-            ...(kunde.email ? { email: kunde.email } : {}),
-            ...(kunde.vorname || kunde.nachname ? { name: `${kunde.vorname} ${kunde.nachname}`.trim() } : {}),
-          });
-          const src = `https://cal.eu/${activeCalLink}?${calParams.toString()}`;
-          return (
-            <div className="rounded-2xl border border-zinc-700/50 overflow-hidden" style={{ height: '700px' }}>
-              <iframe
-                key={s.calKey}
-                src={src}
-                style={{ width: '100%', height: '100%', border: 'none' }}
-                title="Termin buchen"
-                loading="lazy"
-              />
-            </div>
-          );
-        })() : (
-          <div className="rounded-2xl border border-amber-500/30 bg-amber-500/5 p-10 text-center">
-            <p className="text-zinc-300 mb-4">Online-Kalender noch nicht eingerichtet. Bitte direkt kontaktieren:</p>
-            <a href={`tel:${telefon}`} className="btn-gold inline-flex items-center gap-2 font-bold px-6 py-3 rounded-xl cursor-pointer">{telefon}</a>
-          </div>
-        )}
-        <p className="text-center text-sm text-zinc-500 mt-4">
-          Lieber direkt?{' '}
-          <a href={`tel:${telefon}`} className="text-amber-400 hover:underline">{telefon}</a>
-        </p>
-      </div>
+      )}
 
       <button
         onClick={() => dispatch({ type: 'RESET' })}
@@ -1039,6 +1229,7 @@ export default function PriceCalculator({ calLink, calLinks = {}, telefon, email
       </button>
     </div>
   );
+  }
 
   return null;
 }

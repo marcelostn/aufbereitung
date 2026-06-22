@@ -6,6 +6,7 @@ import { TIERHAARE, KINDERSITZ_PRO_STUECK, NIKOTIN, MAEUSEKOT, EXTREME_VERSCHMUT
 import { LKW_PAKETE, type LkwPaketTyp } from '../data/lkw';
 import { LKW_PAKET_DETAILS } from '../data/paket-details';
 import BeforeAfterSlider from '../components/BeforeAfterSlider';
+import Galerie from '../components/Galerie.astro';
 
 function eur(n: number) {
   return n.toLocaleString('de-DE', { style: 'currency', currency: 'EUR' });
@@ -305,6 +306,9 @@ const fahrkostenTabelle = [
       </div>
     </div>
   </div>
+
+  <!-- Galerie – echte Auftragsfotos -->
+  <Galerie titel="So sehen unsere Aufträge aus" />
 
   <style>
     /* Klickbare Paket-Zeilen – ganze Zeile als Button mit deutlicher Hover-Wirkung */

@@ -126,7 +126,51 @@ create table if not exists lager_anlagen (
 create index if not exists lager_anlagen_schluessel_idx on lager_anlagen(schluessel);
 
 
--- ── 6. updated_at Auto-Trigger für alle Tabellen ────────────────────────────
+-- ── 6. Termine (eigenes Buchungssystem) ─────────────────────────────────────
+create table if not exists termine (
+  id                uuid primary key default gen_random_uuid(),
+  status            text not null default 'offen'
+                      check (status in ('offen','bestaetigt','abgesagt','erledigt')),
+  wunsch_datum      date,
+  wunsch_zeit       text default '',
+  wunsch_alternativ text default '',
+  bestaetigt_datum  date,
+  bestaetigt_zeit   text default '',
+  name              text not null default '',
+  telefon           text default '',
+  email             text default '',
+  strasse           text default '',
+  plz               text default '',
+  ort               text default '',
+  kennzeichen       text default '',
+  fahrzeug_gruppe   text default '',
+  paket             text default '',
+  reinigungsort     text default '',
+  aufpreise         text default '',
+  entfernung_km     numeric(10, 2) default 0,
+  preis             numeric(10, 2) default 0,
+  notiz             text default '',
+  admin_notiz       text default '',
+  start_zeit        text default '',
+  dauer_min         integer default 0,
+  created_at        timestamptz default now(),
+  updated_at        timestamptz default now()
+);
+
+create index if not exists termine_status_idx on termine(status);
+create index if not exists termine_wunsch_datum_idx on termine(wunsch_datum);
+create index if not exists termine_created_idx on termine(created_at desc);
+
+
+-- ── 7. Einstellungen (key/value JSON, z.B. Verfügbarkeit/Arbeitszeiten) ──────
+create table if not exists einstellungen (
+  schluessel text primary key,
+  wert       jsonb not null default '{}'::jsonb,
+  updated_at timestamptz default now()
+);
+
+
+-- ── 8. updated_at Auto-Trigger für alle Tabellen ────────────────────────────
 create or replace function set_updated_at()
 returns trigger as $$
 begin
@@ -141,7 +185,7 @@ declare
 begin
   for t in select unnest(array[
     'rechnungen', 'kunden_stempel', 'newsletter_subscriber',
-    'lager_verbrauchsmittel', 'lager_anlagen'
+    'lager_verbrauchsmittel', 'lager_anlagen', 'termine', 'einstellungen'
   ]) loop
     execute format(
       'drop trigger if exists set_updated_at on %I; ' ||
@@ -161,6 +205,8 @@ alter table kunden_einloesungen         enable row level security;
 alter table newsletter_subscriber       enable row level security;
 alter table lager_verbrauchsmittel      enable row level security;
 alter table lager_anlagen               enable row level security;
+alter table termine                     enable row level security;
+alter table einstellungen               enable row level security;
 
 
 -- ============================================================================

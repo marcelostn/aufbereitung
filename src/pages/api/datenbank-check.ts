@@ -17,6 +17,8 @@ const TABELLEN = [
   'newsletter_subscriber',
   'lager_verbrauchsmittel',
   'lager_anlagen',
+  'termine',
+  'einstellungen',
 ];
 
 export const GET: APIRoute = async ({ request }) => {

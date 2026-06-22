@@ -35,13 +35,13 @@
   <path d="M 48 18 L 48.6 19.4 L 51 20 L 48.6 20.6 L 48 22 L 47.4 20.6 L 45 20 L 47.4 19.4 Z" fill="white" opacity="0.75"/>
 
   <!-- ═══ WORDMARK ═══ -->
-  <!-- Firmenname: "Auto" weiß + "Care" amber — Platzhalter, Name später ersetzen -->
+  <!-- Firmenname: "Glanz" weiß + "werk" gold -->
   <text x="66" y="32"
         font-family="Inter, 'Arial Narrow', Arial, sans-serif"
         font-weight="900"
-        font-size="23"
+        font-size="21"
         letter-spacing="-0.5">
-    <tspan fill="white">Auto</tspan><tspan fill="#fbbf24">Care</tspan>
+    <tspan fill="white">Glanz</tspan><tspan fill="#fbbf24">werk</tspan>
   </text>
 
   <!-- Untertitel / Standort -->

@@ -119,3 +119,6 @@ h1, h2 {
     color: #f2f3f5;
   }
 }
+
+/* Galerie-Karussell: Scrollbar ausblenden (WebKit) */
+.galerie-track::-webkit-scrollbar { display: none; }

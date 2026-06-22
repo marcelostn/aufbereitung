@@ -1,0 +1,41 @@
+---
+import GalerieKarussell, { type GalerieKarte } from './GalerieKarussell';
+
+interface Props {
+  /** Optionale Überschrift – Standard passt für alle Seiten */
+  titel?: string;
+  /** Hintergrundfarbe der Sektion (Standard passt zum Seiten-Graphit) */
+  bg?: string;
+}
+
+const { titel = 'Echte Autos, echtes Ergebnis', bg = '#09090b' } = Astro.props;
+
+// ── Galerie-Inhalt (erster Auftrag: Mercedes G-Klasse) ─────────────────
+// Neue Fotos einfach hier ergänzen. Bilder liegen in public/images/galerie/.
+const karten: GalerieKarte[] = [
+  {
+    typ: 'vorhernachher',
+    vorher: '/images/galerie/ba-front-vorher.jpg',
+    nachher: '/images/galerie/ba-front-nachher.jpg',
+    titel: 'Front – staubig zu Hochglanz',
+  },
+  { typ: 'ergebnis', src: '/images/galerie/result-front.jpg', titel: 'Mercedes G-Klasse, aufbereitet', tag: 'Außen' },
+  { typ: 'ergebnis', src: '/images/galerie/result-heck.jpg', titel: 'Heck & Reserverad in Hochglanz', tag: 'Außen' },
+  { typ: 'ergebnis', src: '/images/galerie/result-innen-1.jpg', titel: 'Gepflegtes Leder, vorne', tag: 'Innen' },
+  { typ: 'ergebnis', src: '/images/galerie/result-innen-2.jpg', titel: 'Rückbank wie neu', tag: 'Innen' },
+];
+---
+
+<section class="fade-in-up py-20 sm:py-28" style={`background:${bg};`}>
+  <div class="mx-auto max-w-5xl px-4 sm:px-6">
+    <p class="mb-3 text-xs font-semibold uppercase tracking-[0.22em] text-amber-400/80 before:mr-2 before:text-amber-400 before:content-['·']">
+      Unsere Arbeit
+    </p>
+    <div class="mb-10 flex flex-wrap items-end justify-between gap-4">
+      <h2 class="max-w-xl text-3xl font-bold text-zinc-100 sm:text-4xl">{titel}</h2>
+      <p class="text-sm text-zinc-500">Wischen oder klicken &rarr;</p>
+    </div>
+
+    <GalerieKarussell client:visible karten={karten} />
+  </div>
+</section>
